@@ -20,7 +20,7 @@ Python language based implementation of [Pulseq](http://pulseq.github.io) in [GP
 3. Click on `Config` > `Generate User Library`
 ![](https://github.com/sravan953/pulseq-gpi/blob/master/screenshots/gen_user_lib.png)
 
-4. Place the downloaded folder inside this auto-generated user library folder:
+4. Place the `mr_gpi` and `nodes` inside this auto-generated user library folder:
   Mac - `/Users/<user-name>/gpi/<user-name>/`
 5. Place gre_GPI.net file in:
   Mac - `/Applications/GPI.app/Contents/Resources/miniconda/share/doc/gpi/Examples/`
