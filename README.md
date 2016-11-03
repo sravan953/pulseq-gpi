@@ -51,8 +51,10 @@ Python language based implementation of [Pulseq](http://pulseq.github.io) in [GP
 
 > (Parameters not mentioned have to be set to 0)
 
-**First AddBlock node - Rf, Gz**
-**Event 1 - Rf**
+First AddBlock Node - Rf, Gz
+
+Event 1 - Rf
+
 Parameter | Value
 :---:|:---:
 duration (s) | 2e-3
@@ -60,51 +62,70 @@ timeBwProduct (s) | 4
 apodization | 0.5
 sliceThickness (m) | 5e-3
 
-**Second AddBlock node - GxPre, GyPre, GzReph**
-**Event 1 - G**
+---
+
+Second AddBlock Node - GxPre, GyPre, GzReph
+
+Event 1 - G
+
 Parameter | Value
 :---:|:---:
 channel | x
 duration (s) | 2e-3
 area | -145.681818
-**Event 2 - GyPre**
-**Event 3 - G**
+
+Event 2 - GyPre
+
+Event 3 - G
+
 Parameter | Value
 :---:|:---:
 channel | z
 duration (s) | 2e-3
 area | -403
 
-**Third AddBlock node - Delay 1**
-**Event 1 - Delay**
+---
+
+Third AddBlock Node - Delay 1
+
+Event 1 - Delay
+
 Parameter | Value
 :---:|:---:
 delay (s) | 0.002775
 
-**Fourth AddBlock node - Gx, ADC**
-**Event 1 - Gx**
+---
+
+Fourth AddBlock Node - Gx, ADC
+
+Event 1 - Gx
+
 Parameter | Value
 :---:|:---:
 readoutTime (s) | 6.4e-3
-**Event 2 - ADC**
+
+Event 2 - ADC
+
 Parameter | Value
 :---:|:---:
 numSamples | 64
 duration (s) | 0.0064
 delay (s) | 1e-5
 
-**Fifth AddBlock node - Delay 2**
-**Event 1 - Delay**
+---
+
+Fifth AddBlock Node - Delay 2
+
+Event 1 - Delay
+
 Parameter | Value
 :---:|:---:
 delay (s) | 0.004775
 
 ## 6. Contributing
----
 Fork & PR!
 
 ## NOTES
----
 - Click Off under each Event, and then proceed to configuring the appropriate events in each Node
 - `ConfigSeq` should mandatorily be the first GPI Node in any pulse sequence
 - `GenSeq` node should mandatorily be the last GPI Node in any pulse sequence
