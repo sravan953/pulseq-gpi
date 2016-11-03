@@ -22,13 +22,15 @@ Python language based implementation of [Pulseq](http://pulseq.github.io) in [GP
 
 4. Place the `mr_gpi` and `nodes` inside this auto-generated user library folder:
   Mac - `/Users/<user-name>/gpi/<user-name>/`
-5. Place gre_GPI.net file in:
+5. Place `gre_GPI.net` file in:
   Mac - `/Applications/GPI.app/Contents/Resources/miniconda/share/doc/gpi/Examples/`
 ![](https://github.com/sravan953/pulseq-gpi/blob/master/screenshots/gpi_network_in_examples.png)
 
 > PRO TIP: With your Finder open, press `⌘ + Shift + G` and paste the path to jump to that location
 
 ## 3. Getting started
+This section helps you get started with an example Gradient Echo Recall (GRE) pulse sequence.
+
 1. Open GPI Lab
 2. Click on `Help` > `Examples`
 ![](https://github.com/sravan953/pulseq-gpi/blob/master/screenshots/gpi_help_examples.png)
