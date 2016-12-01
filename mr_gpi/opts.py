@@ -11,9 +11,9 @@ class Opts:
         self.slewUnit = kwargs.get("slewUnit", validSlewUnits[1])
 
         # If values are not provided in required units, convert
-        self.maxGrad = mr_gpi.convert.convert(self.maxGrad, self.gradUnit) if self.gradUnit != validGradUnits[
+        self.maxGrad = mr_gpi.convert.convert(float(self.maxGrad), self.gradUnit) if self.gradUnit != validGradUnits[
             0] else self.maxGrad
-        self.maxSlew = mr_gpi.convert.convert(self.maxSlew, self.slewUnit) if self.slewUnit != validSlewUnits[
+        self.maxSlew = mr_gpi.convert.convert(float(self.maxSlew), self.slewUnit) if self.slewUnit != validSlewUnits[
             0] else self.maxSlew
 
         self.te = kwargs.get("TE", 0)

@@ -1,8 +1,8 @@
 import math
 
+import gpi
 import numpy as np
 
-import gpi
 from mr_gpi.maketrap import maketrapezoid
 from mr_gpi.opts import Opts
 
@@ -34,27 +34,35 @@ class ExternalNode(gpi.NodeAPI):
 
     def compute(self):
         data = {}
-        maxGrad = float(self.getVal('Maximum Gradient (mT/m)'))
-        maxSlew = float(self.getVal('Maximum Slew Rate (T/m/s)'))
-        te = float(self.getVal('Repetition Time (s)'))
-        tr = float(self.getVal('Echo Time (s)'))
-        # TODO CHECK ALPHA
-        alpha = math.radians(float(self.getVal('Flip Angle (deg)')))
-        fov = float(self.getVal('Field of View'))
-        Nx = int(self.getVal('Nx'))
-        Ny = int(self.getVal('Ny'))
-        riseTime = float(self.getVal('Rise Time (s)'))
-        rfDeadTime = float(self.getVal('RF Dead Time (s)'))
-        adcDeadTime = float(self.getVal('ADC Dead Time (s)'))
-        rfRasterTime = float(self.getVal('RF Raster Time (s)'))
-        gradRasterTime = float(self.getVal('Gradient Raster Time (s)'))
-        kwargsForOpts = {"maxGrad": maxGrad, "gradUnit": "mT/m", "maxSlew": maxSlew, "slewUnit": "T/m/ms", "TE": te,
-                         "TR": tr, "flip": alpha, "FOV": fov, "Nx": Nx, "Ny": Ny, "riseTime": riseTime,
-                         "rfDeadTime": rfDeadTime, "adcDeadTime": adcDeadTime, "rfRasterTime": rfRasterTime,
-                         "gradRasterTime": gradRasterTime}
-        system = Opts(**kwargsForOpts)
-        data['system'] = system
+        try:
+            maxGrad = float(self.getVal('Maximum Gradient (mT/m)'))
+            maxSlew = float(self.getVal('Maximum Slew Rate (T/m/s)'))
+            te = float(self.getVal('Repetition Time (s)'))
+            tr = float(self.getVal('Echo Time (s)'))
+            alpha = math.radians(float(self.getVal('Flip Angle (deg)')))
+            fov = float(self.getVal('Field of View'))
+            Nx = int(self.getVal('Nx'))
+            Ny = int(self.getVal('Ny'))
+            riseTime = float(self.getVal('Rise Time (s)'))
+            rfDeadTime = float(self.getVal('RF Dead Time (s)'))
+            adcDeadTime = float(self.getVal('ADC Dead Time (s)'))
+            rfRasterTime = float(self.getVal('RF Raster Time (s)'))
+            gradRasterTime = float(self.getVal('Gradient Raster Time (s)'))
 
+            kwargsForOpts = {"maxGrad": maxGrad, "gradUnit": "mT/m", "maxSlew": maxSlew, "slewUnit": "T/m/ms", "TE": te,
+                             "TR": tr, "flip": alpha, "FOV": fov, "Nx": Nx, "Ny": Ny, "riseTime": riseTime,
+                             "rfDeadTime": rfDeadTime, "adcDeadTime": adcDeadTime, "rfRasterTime": rfRasterTime,
+                             "gradRasterTime": gradRasterTime}
+            system = Opts(**kwargsForOpts)
+            data['system'] = system
+            data['gyPre'] = self.computeGyPre(fov, Ny, system)
+            self.setData('sequence_obj', data)
+        except ValueError:
+            self.log.node('Please make sure you have input valid data.')
+
+        return 0
+
+    def computeGyPre(self, fov, Ny, system):
         deltak = 1 / fov
         phaseAreas = np.array(([x for x in range(0, Ny)]))
         phaseAreas = (phaseAreas - Ny / 2) * deltak
@@ -63,8 +71,4 @@ class ExternalNode(gpi.NodeAPI):
             kwargsForGyPre = {"channel": 'y', "system": system, "area": phaseAreas[i], "duration": 2e-3}
             gyPre = maketrapezoid(**kwargsForGyPre)
             gyPreList.append(gyPre)
-        data['gyPre'] = gyPreList
-
-        self.setData('sequence_obj', data)
-
-        return 0
+        return gyPreList

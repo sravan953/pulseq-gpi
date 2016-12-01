@@ -1,5 +1,6 @@
 import gpi
 from gpi import QtGui
+
 from mr_gpi.makeadc import makeadc
 from mr_gpi.makedelay import makedelay
 from mr_gpi.makesinc import makesincpulse
@@ -14,12 +15,11 @@ class AddBlockWidgets(gpi.GenericWidgetGroup):
 
     def __init__(self, title, parent=None):
         super(AddBlockWidgets, self).__init__(title, parent)
-        # at least one button
         self.buttonNamesList = ['Off', 'Delay', 'Rf', 'Gx', 'G', 'GyPre', 'ADC']
         self.clickedButtonName, self.clickedButtonIndex = '', 0
         self.buttonsList, self.teList = [], []
-        cnt = 0
-        self.wdgLayout = QtGui.QGridLayout()
+        colCount = 0
+        wdgLayout = QtGui.QGridLayout()
 
         for name in self.buttonNamesList:
             newbutton = QtGui.QPushButton(name)
@@ -27,28 +27,41 @@ class AddBlockWidgets(gpi.GenericWidgetGroup):
             newbutton.setAutoExclusive(True)
             newbutton.clicked.connect(self.buttonClicked)
             newbutton.clicked.connect(self.valueChanged)
-            self.wdgLayout.addWidget(newbutton, 0, cnt, 1, 1)
+            # addWidget(widget, row, col, rowSpan, colSpan)
+            wdgLayout.addWidget(newbutton, 0, colCount, 1, 1)
             self.buttonsList.append(newbutton)
-            cnt += 1
-        self.buttonsList[0].setChecked(True)
+            colCount += 1
 
         for x in range(8):
             self.te = gpi.StringBox(str(x))
             self.te.set_visible(False)
-            self.wdgLayout.addWidget(self.te, x + 1, 1, 1, 6)
+            wdgLayout.addWidget(self.te, x + 1, 1, 1, 6)
             self.teList.append(self.te)
-
-        self.setLayout(self.wdgLayout)
+        self.setLayout(wdgLayout)
+        self.buttonsList[0].setChecked(True)
 
     def get_val(self):
         if self.clickedButtonIndex == 0:
             return {}
         else:
             if self.clickedButtonIndex == 5:
+                # Return 'GyPre' because values are pre-computed in ConfigSeq_GPI Node
                 return {'event': 'GyPre'}
             else:
                 values = {'event': self.clickedButtonName, 'data': [x.get_val() for x in self.teList]}
                 return values
+
+    def set_val(self, val):
+        if len(val) == 0:
+            self.hideOtherTes()
+        else:
+            self.clickedButtonName = val['event']
+            self.clickedButtonIndex = self.buttonNamesList.index(self.clickedButtonName)
+            self.buttonsList[self.clickedButtonIndex].setChecked(True)
+            self.showTes(self.clickedButtonIndex)
+            data = val['data']
+            for x in range(8):
+                self.teList[x].set_val(data[x])
 
     def buttonClicked(self):
         for button in self.buttonsList:
@@ -115,7 +128,7 @@ class ExternalNode(gpi.NodeAPI):
         return 0
 
     def validate(self):
-        if 'ComputeEvents' in self.widgetEvents():
+        if 'ComputeEvents' in self.widgetEvents() or self.portEvents():
             self.setDetailLabel(self.getVal('Unique Node Name'))
 
     def compute(self):

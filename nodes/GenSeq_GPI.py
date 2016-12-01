@@ -1,6 +1,6 @@
+import gpi
 import numpy as np
 
-import gpi
 from mr_gpi.Sequence.sequence import Sequence
 from mr_gpi.calcduration import calcduration
 
@@ -24,35 +24,40 @@ class ExternalNode(gpi.NodeAPI):
         return 0
 
     def compute(self):
-        self.inDict = self.getData('sequence_obj_in')
-        self.system = self.inDict['system']
-        self.seq = Sequence(self.system)
-        gyPre, Ny = self.inDict['gyPre'], self.system.Ny
+        try:
+            self.inDict = self.getData('sequence_obj_in')
+            self.system = self.inDict['system']
+            self.seq = Sequence(self.system)
+            gyPre, Ny = self.inDict['gyPre'], self.system.Ny
 
-        self.events, self.eventNames = self.inDict['events'], self.inDict['eventNames']
-        for i in range(Ny):
-            for j in range(len(self.events)):
-                blockRow, blockNames = self.events[j], self.eventNames[j]
-                if 'GyPre' in blockNames:
-                    gyIndex = blockNames.index('GyPre')
-                    if i == 0:
-                        blockRow.insert(gyIndex, gyPre[i])
-                    else:
-                        blockRow[gyIndex] = gyPre[i]
-                self.seq.addBlock(*blockRow)
+            self.events, self.eventNames = self.inDict['events'], self.inDict['eventNames']
+            for i in range(Ny):
+                for j in range(len(self.events)):
+                    blockRow, blockNames = self.events[j], self.eventNames[j]
+                    if 'GyPre' in blockNames:
+                        gyIndex = blockNames.index('GyPre')
+                        # GyPre has to be inserted only on the first iteration.
+                        # In subsequent iterations, the inserted GyPre value is simply replaced.
+                        if i == 0:
+                            blockRow.insert(gyIndex, gyPre[i])
+                        else:
+                            blockRow[gyIndex] = gyPre[i]
+                    self.seq.addBlock(*blockRow)
+                self.inDict['seq'] = self.seq
 
-        self.inDict['seq'] = self.seq
-        self.setData('sequence_obj_out', self.inDict)
-        self.setPlotOutputs()
+            self.setData('sequence_obj_out', self.inDict)
+            self.setPlotOutputs()
+        except:
+            self.log.node("Fatal error occurred.")
 
         return 0
 
     def setPlotOutputs(self):
         t0, timeRange = 0, [0, np.inf]
-        tAdcPrev, tRfPrev, tGradPrev = 0, 0, 0
-        tTrapPrev = [0, 0, 0]
+        tAdcPrev, tRfPrev, tGradPrev, tTrapPrev = 0, 0, 0, [0, 0, 0]
         adcValues = rfMagValues = rfPhaseValues = np.array(0)
-        tXValues, tYValues, tZValues = 0, 0, 0
+        tXValues, tYValues, tZValues = np.array(0), np.array(0), np.array(0)
+
         for iB in range(1, len(self.seq.blockEvents)):
             block = self.seq.getBlock(iB)
             isValid = t0 >= timeRange[0] and t0 <= timeRange[1]
@@ -62,10 +67,10 @@ class ExternalNode(gpi.NodeAPI):
                         adc = block['adc']
                         t = adc.delay + [(x * adc.dwell) for x in range(0, int(adc.numSamples))]
                         tcurr = t0 - tAdcPrev
-                        adcValues = np.append(adcValues, np.zeros(tcurr / adc.dwell))
-                        adcValues = np.append(adcValues, np.ones(len(t)))
                         adcDwell = adc.dwell
-                        tAdcPrev = t0 + t[-1]
+                        adcValues = np.append(adcValues, np.zeros(tcurr / adcDwell))
+                        adcValues = np.append(adcValues, np.ones(len(t)))
+                        tAdcPrev = (t0 + t)[-1]
                     if 'rf' in block:
                         rf = block['rf']
                         t = rf.t
@@ -74,7 +79,7 @@ class ExternalNode(gpi.NodeAPI):
                         rfMagValues = np.append(rfMagValues, abs(rf.signal))
                         rfPhaseValues = np.append(rfPhaseValues, np.zeros(tcurr / self.system.rfRasterTime))
                         rfPhaseValues = np.append(rfPhaseValues, np.angle(rf.signal))
-                        tRfPrev = t0 + t[-1][-1]
+                        tRfPrev = (t0 + t)[-1][-1]
                     gradChannels = ['gx', 'gy', 'gz']
                     for x in range(0, len(gradChannels)):
                         if gradChannels[x] in block:
@@ -99,10 +104,10 @@ class ExternalNode(gpi.NodeAPI):
                                     tZValues = np.append(tZValues,
                                                          np.zeros(tcurr / self.system.gradRasterTime))
                                     tZValues = np.append(tZValues, waveform)
-                                tTrapPrev[chIndex] = t0 + t[-1]
-
+                                tTrapPrev[chIndex] = (t0 + t)[-1]
             t0 += calcduration(block)
 
+        # Setting outputs
         # ADC
         adcOutput = np.empty((len(adcValues), 2))
         for x in range(len(adcValues)):
