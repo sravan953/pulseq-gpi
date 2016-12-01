@@ -18,33 +18,26 @@ Python language based implementation of [Pulseq](http://pulseq.github.io) in [GP
 1. Clone [repo](https://github.com/sravan953/pulseq-gpi)
 2. Open GPI Lab
 3. Click on `Config` > `Generate User Library`
-![](https://github.com/sravan953/pulseq-gpi/blob/master/screenshots/gen_user_lib.png)
-
 4. Place the `mr_gpi` and `nodes` inside this auto-generated user library folder:
   Mac - `/Users/<user-name>/gpi/<user-name>/`
-5. Place `gre_GPI.net` file in:
+5. In GPI Lab, click on 'Config' > 'Scan for new nodes'
+6. Place `gre_GPI.net` file in:
   Mac - `/Applications/GPI.app/Contents/Resources/miniconda/share/doc/gpi/Examples/`
-![](https://github.com/sravan953/pulseq-gpi/blob/master/screenshots/gpi_network_in_examples.png)
 
 > PRO TIP: With your Finder open, press `⌘ + Shift + G` and paste the path to jump to that location
 
 ## 3. Getting started
-This section helps you get started with an example Gradient Echo Recall (GRE) pulse sequence.
+This section helps you get started with an example Gradient Recalled Echo (GRE) pulse sequence.
 
 1. Open GPI Lab
 2. Click on `Help` > `Examples`
-![](https://github.com/sravan953/pulseq-gpi/blob/master/screenshots/gpi_help_examples.png)
-
 3. Drag and drop the `gre_GPI.net` file onto the blank canvas
 4. Configure the pulse sequence values by right clicking on the `ConfigSeq` and `AddBlock` nodes (refer Appendix for configuration values)
-![](https://github.com/sravan953/pulseq-gpi/blob/master/screenshots/config_params.png)
-
 5. From left to right, click `Compute` events in each Node
 6. Right click on the Matplotlib Node to view graphs
 
 ## 4. Issues & TODO
 1. Issue: Only cartesian coordinate system supported
-2. Issue: Node parameters get reset when loading network from a save file
 3. TODO: Implement read from seq file functionality
 4. TODO: Customize Matplotlib node to support subplots
 
