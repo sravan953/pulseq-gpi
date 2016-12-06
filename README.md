@@ -21,7 +21,7 @@ Python language based implementation of [Pulseq](http://pulseq.github.io) in [GP
 4. Place the `mr_gpi` and `nodes` inside this auto-generated user library folder:
   Mac - `/Users/<user-name>/gpi/<user-name>/`
 5. In GPI Lab, click on 'Config' > 'Scan for new nodes'
-6. Place `gre_GPI.net` file in:
+6. Place `gradient_recalled_echo.net` file in:
   Mac - `/Applications/GPI.app/Contents/Resources/miniconda/share/doc/gpi/Examples/`
 
 > PRO TIP: With your Finder open, press `⌘ + Shift + G` and paste the path to jump to that location
@@ -31,7 +31,7 @@ This section helps you get started with an example Gradient Recalled Echo (GRE) 
 
 1. Open GPI Lab
 2. Click on `Help` > `Examples`
-3. Drag and drop the `gre_GPI.net` file onto the blank canvas
+3. Drag and drop the `gradient_recalled_echo.net` file onto the blank canvas
 4. Configure the pulse sequence values by right clicking on the `ConfigSeq` and `AddBlock` nodes (refer Appendix for configuration values)
 5. From left to right, click `Compute` events in each Node
 6. Right click on the Matplotlib Node to view graphs
