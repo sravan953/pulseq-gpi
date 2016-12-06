@@ -31,6 +31,8 @@ class EventLibrary:
         return [keyId, found]
 
     def insert(self, keyId, newData, dataType):
+        if not isinstance(newData, np.ndarray):
+            newData = np.array(newData)
         self.keys[keyId] = keyId
         self.data[keyId] = newData
         self.lengths[keyId] = max(self.data[keyId].shape)

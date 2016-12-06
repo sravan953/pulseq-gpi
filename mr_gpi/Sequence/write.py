@@ -94,15 +94,16 @@ def write(self, name):
         outputFile.write('[SHAPES]\n\n')
         keys = self.shapeLibrary.keys
         for k in keys.values():
-            shape_dat = self.shapeLibrary.data[k]
+            shape_data = self.shapeLibrary.data[k]
             s = 'shape_id {:>.0f}\n'
             s = s.format(k)
             outputFile.write(s)
             s = 'num_samples {:>.0f}\n'
-            s = s.format(shape_dat[0][0])
+            print(shape_data.shape)
+            s = s.format(shape_data[0][0])
             outputFile.write(s)
             s = '{:g}\n'
-            for x in shape_dat[0][1:]:
+            for x in shape_data[0][1:]:
                 s1 = s.format(x)
                 outputFile.write(s1)
             outputFile.write('\n')

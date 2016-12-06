@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 
 import mr_gpi.calcduration
 from mr_gpi.Sequence import block
+from mr_gpi.Sequence.read import read
 from mr_gpi.Sequence.write import write
 from mr_gpi.eventlib import EventLibrary
 
@@ -37,6 +38,9 @@ class Sequence:
 
     def getBlock(self, blockIndex):
         return block.getblock(self, blockIndex)
+
+    def read(self, filePath):
+        read(self, filePath)
 
     def write(self, name):
         write(self, name)
