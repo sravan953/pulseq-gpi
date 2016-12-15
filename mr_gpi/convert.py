@@ -1,23 +1,23 @@
 from math import pi
 
 
-def convert(fromValue, fromUnit):
-    if isinstance(fromValue, float) and isinstance(fromUnit, str):
+def convert(from_value, from_unit):
+    if isinstance(from_value, float) and isinstance(from_unit, str):
         gamma, standard = 42.576e6, 0
         # Converting gradient
-        if fromUnit == 'Hz/m':
-            standard = fromValue
-        elif fromUnit == 'mT/m':
-            standard = fromValue * 1e-3 * gamma
-        elif fromUnit == 'rad/ms/mm':
-            standard = fromValue * 1e6 / (2 * pi)
+        if from_unit == 'Hz/m':
+            standard = from_value
+        elif from_unit == 'mT/m':
+            standard = from_value * 1e-3 * gamma
+        elif from_unit == 'rad/ms/mm':
+            standard = from_value * 1e6 / (2 * pi)
         # Converting slew rate
-        elif fromUnit == 'Hz/m/s':
-            standard = fromValue
-        elif fromUnit == 'mT/m/ms' or 'T/m/s':
-            standard = fromValue * gamma
-        elif fromUnit == 'rad/ms/mm/ms':
-            standard = fromValue * 1e9 / (2 * pi)
+        elif from_unit == 'Hz/m/s':
+            standard = from_value
+        elif from_unit == 'mT/m/ms' or 'T/m/s':
+            standard = from_value * gamma
+        elif from_unit == 'rad/ms/mm/ms':
+            standard = from_value * 1e9 / (2 * pi)
         return standard
     else:
-        raise TypeError("input parameters should be: fromValue, fromUnit")
+        raise TypeError("input parameters should be: from_value, from_unit")

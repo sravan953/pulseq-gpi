@@ -3,38 +3,36 @@ import numpy as np
 from mr_gpi.holder import Holder
 
 
-def compressShape(decompressedShape):
-    if decompressedShape.shape[0] != 1:
+def compress_shape(decompressed_shape):
+    if decompressed_shape.shape[0] != 1:
         raise ValueError("input should be of shape (1,x)")
-    if not isinstance(decompressedShape, np.ndarray):
+    if not isinstance(decompressed_shape, np.ndarray):
         raise TypeError("input should be of type numpy.ndarray")
 
-    data = np.array([decompressedShape[0][0]])
-    data = np.concatenate((data, np.diff(decompressedShape[0])))
+    data = np.array([decompressed_shape[0][0]])
+    data = np.concatenate((data, np.diff(decompressed_shape[0])))
 
-    maskChanges = np.array([1])
-    diffAsOnes = (abs(np.diff(data)) > 1e-8).astype(int)
-    maskChanges = np.concatenate((maskChanges, diffAsOnes))
-    # Following 2 lines of code are equivalent to MATLAB's find function
-    nonZeroIndices = np.nonzero(maskChanges)
-    vals = data[nonZeroIndices].astype(float)
-    k = np.array(np.nonzero(np.append(maskChanges, 1)))
+    mask_changes = np.array([1])
+    diff_as_ones = (abs(np.diff(data)) > 1e-8).astype(int)
+    mask_changes = np.concatenate((mask_changes, diff_as_ones))
+    vals = data[np.nonzero(mask_changes)].astype(float)
+    k = np.array(np.nonzero(np.append(mask_changes, 1)))
     k = k.reshape((1, k.shape[1]))
     n = np.diff(k)[0]
 
-    nExtra = (n - 2).astype(float)
+    n_extra = (n - 2).astype(float)
     vals2 = np.copy(vals)
-    vals2[np.where(nExtra < 0)] = np.NAN
-    nExtra[np.where(nExtra < 0)] = np.NAN
-    v = np.array([vals, vals2, nExtra])
+    vals2[np.where(n_extra < 0)] = np.NAN
+    n_extra[np.where(n_extra < 0)] = np.NAN
+    v = np.array([vals, vals2, n_extra])
     v = np.concatenate(np.hsplit(v, v.shape[1]))
-    finiteVals = np.isfinite(v)
-    v = v[finiteVals]
-    vAbs = abs(v)
-    smallestIndices = np.where(vAbs < 1e-10)
-    v[smallestIndices] = 0
+    finite_vals = np.isfinite(v)
+    v = v[finite_vals]
+    v_abs = abs(v)
+    smallest_indices = np.where(v_abs < 1e-10)
+    v[smallest_indices] = 0
 
     s = Holder()
-    s.num_samples = decompressedShape.shape[1]
+    s.num_samples = decompressed_shape.shape[1]
     s.data = v.reshape([1, v.shape[0]])
     return s

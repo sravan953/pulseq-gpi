@@ -3,44 +3,46 @@ import mr_gpi.convert
 
 class Opts:
     def __init__(self, **kwargs):
-        validGradUnits = ['Hz/m', 'mT/m', 'rad/ms/mm']
-        validSlewUnits = ['Hz/m/s', 'mT/m/ms', 'T/m/s', 'rad/ms/mm/ms']
-        self.maxGrad = kwargs.get("maxGrad", 30)
-        self.maxSlew = kwargs.get("maxSlew", 170)
-        self.gradUnit = kwargs.get("gradUnit", validGradUnits[1])
-        self.slewUnit = kwargs.get("slewUnit", validSlewUnits[1])
+        valid_grad_units = ['Hz/m', 'mT/m', 'rad/ms/mm']
+        valid_slew_units = ['Hz/m/s', 'mT/m/ms', 'T/m/s', 'rad/ms/mm/ms']
+        self.max_grad = kwargs.get("max_grad", 30)
+        self.max_slew = kwargs.get("max_slew", 170)
+        self.grad_unit = kwargs.get("grad_unit", valid_grad_units[1])
+        self.slew_unit = kwargs.get("slew_unit", valid_slew_units[1])
 
         # If values are not provided in required units, convert
-        self.maxGrad = mr_gpi.convert.convert(float(self.maxGrad), self.gradUnit) if self.gradUnit != validGradUnits[
-            0] else self.maxGrad
-        self.maxSlew = mr_gpi.convert.convert(float(self.maxSlew), self.slewUnit) if self.slewUnit != validSlewUnits[
-            0] else self.maxSlew
+        self.max_grad = mr_gpi.convert.convert(float(self.max_grad), self.grad_unit) if self.grad_unit != \
+                                                                                        valid_grad_units[
+                                                                                            0] else self.max_grad
+        self.max_slew = mr_gpi.convert.convert(float(self.max_slew), self.slew_unit) if self.slew_unit != \
+                                                                                        valid_slew_units[
+                                                                                            0] else self.max_slew
 
-        self.te = kwargs.get("TE", 0)
-        self.tr = kwargs.get("TR", 0)
+        self.te = kwargs.get("te", 0)
+        self.tr = kwargs.get("tr", 0)
         self.flip = kwargs.get("flip", 0)
-        self.fov = kwargs.get("FOV", 0)
+        self.fov = kwargs.get("fov", 0)
         self.Nx = kwargs.get("Nx", 0)
         self.Ny = kwargs.get("Ny", 0)
-        self.riseTime = kwargs.get("riseTime", 0)
-        self.rfDeadTime = kwargs.get("rfDeadTime", 0)
-        self.adcDeadTime = kwargs.get("adcDeadTime", 0)
-        self.rfRasterTime = kwargs.get("rfRasterTime", 1e-6)
-        self.gradRasterTime = kwargs.get("gradRasterTime", 10e-6)
+        self.rise_time = kwargs.get("rise_time", 0)
+        self.rf_dead_time = kwargs.get("rf_dead_time", 0)
+        self.adc_dead_time = kwargs.get("adc_dead_time", 0)
+        self.rf_raster_time = kwargs.get("rf_raster_time", 1e-6)
+        self.grad_raster_time = kwargs.get("grad_raster_time", 10e-6)
 
     def __str__(self):
         s = "Opts:"
-        s += "\nmaxGrad: " + str(self.maxGrad) + str(self.gradUnit)
-        s += "\nmaxSlew: " + str(self.maxSlew) + str(self.slewUnit)
-        s += "\nTE: " + str(self.te)
-        s += "\nTR: " + str(self.tr)
-        s += "\nFlip: " + str(self.flip)
-        s += "\nFOV: " + str(self.fov)
+        s += "\nmax_grad: " + str(self.max_grad) + str(self.grad_unit)
+        s += "\nmax_slew: " + str(self.max_slew) + str(self.slew_unit)
+        s += "\nte: " + str(self.te)
+        s += "\ntr: " + str(self.tr)
+        s += "\nflip: " + str(self.flip)
+        s += "\nfov: " + str(self.fov)
         s += "\nNx: " + str(self.Nx)
         s += "\nNy: " + str(self.Ny)
-        s += "\nriseTime: " + str(self.riseTime)
-        s += "\nrfDeadTime: " + str(self.rfDeadTime)
-        s += "\nadcDeadTime: " + str(self.adcDeadTime)
-        s += "\nrfRasterTime: " + str(self.rfRasterTime)
-        s += "\ngradRasterTime: " + str(self.gradRasterTime)
+        s += "\nrise_time: " + str(self.rise_time)
+        s += "\nrf_dead_time: " + str(self.rf_dead_time)
+        s += "\nadc_dead_time: " + str(self.adc_dead_time)
+        s += "\nrf_raster_time: " + str(self.rf_raster_time)
+        s += "\ngrad_raster_time: " + str(self.grad_raster_time)
         return s

@@ -3,13 +3,13 @@ import numpy as np
 from mr_gpi.holder import Holder
 
 
-def decompressShape(compressedShape):
-    if compressedShape.data.shape[0] != 1:
+def decompress_shape(compressed_shape):
+    if compressed_shape.data.shape[0] != 1:
         raise ValueError("input should be of shape (1,x)")
-    if not isinstance(compressedShape, Holder):
+    if not isinstance(compressed_shape, Holder):
         raise TypeError("input should be of type holder.Holder")
 
-    dataPack, numSamples = compressedShape.data, int(compressedShape.num_samples)
+    dataPack, numSamples = compressed_shape.data, int(compressed_shape.num_samples)
     w = np.zeros(numSamples)
 
     countPack, countUnpack = 0, 0

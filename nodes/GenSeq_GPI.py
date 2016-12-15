@@ -7,145 +7,125 @@ from mr_gpi.calcduration import calcduration
 
 class ExternalNode(gpi.NodeAPI):
     """This node has no widgets since it does not require any configuration. This is a purely computational node- it
-    adds the supplied blocks to a Sequence object. The output of this node can be used for plotting, e.g. Matplotlib
+    adds the supplied blocks to a Sequence object. The output of this node can be supplied to a Matplotlib node for
+    plotting.
     """
 
     def initUI(self):
         # IO Ports
-        self.addInPort(title='sequence_obj_in', type='DICT')
-        self.addOutPort(title='sequence_obj_out', type='DICT')
+        self.addInPort(title='input', type='DICT')
+        self.addOutPort(title='output', type='DICT')
         self.addOutPort(title='adc', type='NPYarray')
         self.addOutPort(title='rf_mag', type='NPYarray')
         self.addOutPort(title='rf_phase', type='NPYarray')
-        self.addOutPort(title='trapX', type='NPYarray')
-        self.addOutPort(title='trapY', type='NPYarray')
-        self.addOutPort(title='trapZ', type='NPYarray')
+        self.addOutPort(title='trap_x', type='NPYarray')
+        self.addOutPort(title='trap_y', type='NPYarray')
+        self.addOutPort(title='trap_z', type='NPYarray')
 
         return 0
 
     def compute(self):
-        try:
-            self.inDict = self.getData('sequence_obj_in')
-            self.system = self.inDict['system']
-            self.seq = Sequence(self.system)
-            gyPre, Ny = self.inDict['gyPre'], self.system.Ny
+        in_dict = self.getData('input')
+        self.seq = in_dict['sequence']
+        if self.seq is None:
+            system = in_dict['system']
+            self.seq = Sequence(system)
+            gy_pre, Ny = in_dict['gy_pre'], system.Ny
 
-            self.events, self.eventNames = self.inDict['events'], self.inDict['eventNames']
+            events, event_names = in_dict['events'], in_dict['event_names']
             for i in range(Ny):
-                for j in range(len(self.events)):
-                    blockRow, blockNames = self.events[j], self.eventNames[j]
-                    if 'GyPre' in blockNames:
-                        gyIndex = blockNames.index('GyPre')
+                for j in range(len(events)):
+                    block_row, block_names = events[j], event_names[j]
+                    if 'GyPre' in block_names:
+                        gy_index = block_names.index('GyPre')
                         # GyPre has to be inserted only on the first iteration.
                         # In subsequent iterations, the inserted GyPre value is simply replaced.
                         if i == 0:
-                            blockRow.insert(gyIndex, gyPre[i])
+                            block_row.insert(gy_index, gy_pre[i])
                         else:
-                            blockRow[gyIndex] = gyPre[i]
-                    self.seq.addBlock(*blockRow)
-                self.inDict['seq'] = self.seq
+                            block_row[gy_index] = gy_pre[i]
+                    self.seq.addblock(*block_row)
+                in_dict['seq'] = self.seq
 
-            self.setData('sequence_obj_out', self.inDict)
-            self.setPlotOutputs()
-        except:
-            self.log.node("Fatal error occurred.")
+        self.setData('output', in_dict)
+        self.setPlotOutputs()
 
         return 0
 
     def setPlotOutputs(self):
-        t0, timeRange = 0, [0, np.inf]
-        tAdcPrev, tRfPrev, tGradPrev, tTrapPrev = 0, 0, 0, [0, 0, 0]
-        adcValues = rfMagValues = rfPhaseValues = np.array(0)
-        tXValues, tYValues, tZValues = np.array(0), np.array(0), np.array(0)
+        t0, time_range = 0, [0, np.inf]
+        adc_values = [[], []]
+        rf_mag_values = [[], []]
+        rf_phase_values = [[], []]
+        t_x_values = [[], []]
+        t_y_values = [[], []]
+        t_z_values = [[], []]
 
-        for iB in range(1, len(self.seq.blockEvents)):
-            block = self.seq.getBlock(iB)
-            isValid = t0 >= timeRange[0] and t0 <= timeRange[1]
-            if isValid:
+        for iB in range(1, len(self.seq.block_events)):
+            block = self.seq.getblock(iB)
+            is_valid = time_range[0] <= t0 <= time_range[1]
+            if is_valid:
                 if block is not None:
                     if 'adc' in block:
                         adc = block['adc']
-                        t = adc.delay + [(x * adc.dwell) for x in range(0, int(adc.numSamples))]
-                        tcurr = t0 - tAdcPrev
-                        adcDwell = adc.dwell
-                        adcValues = np.append(adcValues, np.zeros(tcurr / adcDwell))
-                        adcValues = np.append(adcValues, np.ones(len(t)))
-                        tAdcPrev = (t0 + t)[-1]
+                        t = adc.delay + [(x * adc.dwell) for x in range(0, int(adc.num_samples))]
+                        adc_values[0].extend(t0 + t)
+                        adc_values[1].extend(np.ones(len(t)))
                     if 'rf' in block:
                         rf = block['rf']
                         t = rf.t
-                        tcurr = t0 - tRfPrev
-                        rfMagValues = np.append(rfMagValues, np.zeros(tcurr / self.system.rfRasterTime))
-                        rfMagValues = np.append(rfMagValues, abs(rf.signal))
-                        rfPhaseValues = np.append(rfPhaseValues, np.zeros(tcurr / self.system.rfRasterTime))
-                        rfPhaseValues = np.append(rfPhaseValues, np.angle(rf.signal))
-                        tRfPrev = (t0 + t)[-1][-1]
-                    gradChannels = ['gx', 'gy', 'gz']
-                    for x in range(0, len(gradChannels)):
-                        if gradChannels[x] in block:
-                            grad = block[gradChannels[x]]
+                        rf_mag_values[0].extend(t0 + t[0])
+                        rf_mag_values[1].extend(abs(rf.signal))
+                        rf_phase_values[0].extend(t0 + t[0])
+                        rf_phase_values[1].extend(np.angle(rf.signal))
+                    grad_channels = ['gx', 'gy', 'gz']
+                    for x in range(0, len(grad_channels)):
+                        if grad_channels[x] in block:
+                            grad = block[grad_channels[x]]
                             if grad.type == 'grad':
                                 t = grad.t
                                 waveform = 1e-3 * grad.waveform
                             else:
-                                t = np.cumsum([0, grad.riseTime, grad.flatTime, grad.fallTime])
+                                t = np.cumsum([0, grad.rise_time, grad.flat_time, grad.fall_time])
                                 waveform = [1e-3 * grad.amplitude * x for x in [0, 1, 1, 0]]
-                                chIndex = 'xyz'.index(grad.channel)
-                                tcurr = t0 - tTrapPrev[chIndex]
                                 if grad.channel == 'x':
-                                    tXValues = np.append(tXValues,
-                                                         np.zeros(tcurr / self.system.gradRasterTime))
-                                    tXValues = np.append(tXValues, waveform)
+                                    t_x_values[0].extend(t0 + t)
+                                    t_x_values[1].extend(waveform)
                                 elif grad.channel == 'y':
-                                    tYValues = np.append(tYValues,
-                                                         np.zeros(tcurr / self.system.gradRasterTime))
-                                    tYValues = np.append(tYValues, waveform)
+                                    t_y_values[0].extend(t0 + t)
+                                    t_y_values[1].extend(waveform)
                                 elif grad.channel == 'z':
-                                    tZValues = np.append(tZValues,
-                                                         np.zeros(tcurr / self.system.gradRasterTime))
-                                    tZValues = np.append(tZValues, waveform)
-                                tTrapPrev[chIndex] = (t0 + t)[-1]
+                                    t_z_values[0].extend(t0 + t)
+                                    t_z_values[1].extend(waveform)
             t0 += calcduration(block)
 
         # Setting outputs
         # ADC
-        adcOutput = np.empty((len(adcValues), 2))
-        for x in range(len(adcValues)):
-            adcOutput[x][0] = x * adcDwell
-            adcOutput[x][1] = adcValues[x]
-        self.setData('adc', adcOutput)
+        adc_output = np.array(adc_values)
+        adc_output = adc_output.transpose()
+        self.setData('adc', adc_output)
 
         # RF Mag
-        rfMagOutput = np.empty((len(rfMagValues), 2))
-        for x in range(len(rfMagValues)):
-            rfMagOutput[x][0] = x * self.system.rfRasterTime
-            rfMagOutput[x][1] = rfMagValues[x]
-        self.setData('rf_mag', rfMagOutput)
+        rf_mag_output = np.array(rf_mag_values)
+        rf_mag_output = rf_mag_output.transpose()
+        self.setData('rf_mag', rf_mag_output)
 
         # RF Phase
-        rfPhOutput = np.empty((len(rfPhaseValues), 2))
-        for x in range(len(rfPhaseValues)):
-            rfPhOutput[x][0] = x * self.system.rfRasterTime
-            rfPhOutput[x][1] = rfPhaseValues[x]
-        self.setData('rf_phase', rfPhOutput)
+        rf_ph_output = np.array(rf_phase_values)
+        rf_ph_output = rf_ph_output.transpose()
+        self.setData('rf_phase', rf_ph_output)
 
         # TrapX
-        tXOutput = np.empty((len(tXValues), 2))
-        for x in range(len(tXValues)):
-            tXOutput[x][0] = x * self.system.gradRasterTime
-            tXOutput[x][1] = tXValues[x]
-        self.setData('trapX', tXOutput)
+        t_x_output = np.array(t_x_values)
+        t_x_output = t_x_output.transpose()
+        self.setData('trap_x', t_x_output)
 
         # TrapY
-        tYOutput = np.empty((len(tYValues), 2))
-        for x in range(len(tYValues)):
-            tYOutput[x][0] = x * self.system.gradRasterTime
-            tYOutput[x][1] = tYValues[x]
-        self.setData('trapY', tYOutput)
+        t_y_output = np.array(t_y_values)
+        t_y_output = t_y_output.transpose()
+        self.setData('trap_y', t_y_output)
 
         # TrapZ
-        tZOutput = np.empty((len(tZValues), 2))
-        for x in range(len(tZValues)):
-            tZOutput[x][0] = x * self.system.gradRasterTime
-            tZOutput[x][1] = tZValues[x]
-        self.setData('trapZ', tZOutput)
+        t_z_output = np.array(t_z_values)
+        t_z_output = t_z_output.transpose()
+        self.setData('trap_z', t_z_output)

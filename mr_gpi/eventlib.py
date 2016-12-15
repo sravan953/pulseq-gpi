@@ -3,7 +3,7 @@ import numpy as np
 
 class EventLibrary:
     def __init__(self):
-        # size of data is 0x0 because of rangeLen in find()
+        # size of data is 0x0 because of range_len in find()
         self.keys, self.data, self.lengths, self.type = {}, {}, {}, {}
 
     def __str__(self):
@@ -14,26 +14,26 @@ class EventLibrary:
         s += "\ntype: " + str(self.type)
         return s
 
-    def find(self, newData):
+    def find(self, new_data):
         found = False
-        keyId = 0
+        key_id = 0
 
         try:
-            rangeLen = len(self.data)
+            range_len = len(self.data)
         except ValueError:
-            rangeLen = 0
-        for i in range(1, rangeLen + 1):
-            if (self.lengths[i]) == max(newData.shape) and np.linalg.norm((self.data[i] - newData), ord=2) < 1e-6:
-                keyId, found = self.keys[i], True
-                return [keyId, found]
+            range_len = 0
+        for i in range(1, range_len + 1):
+            if (self.lengths[i]) == max(new_data.shape) and np.linalg.norm((self.data[i] - new_data), ord=2) < 1e-6:
+                key_id, found = self.keys[i], True
+                return [key_id, found]
 
-        keyId = 1 if (len(self.keys) == 0) else (max(self.keys) + 1)
-        return [keyId, found]
+        key_id = 1 if (len(self.keys) == 0) else (max(self.keys) + 1)
+        return [key_id, found]
 
-    def insert(self, keyId, newData, dataType):
-        if not isinstance(newData, np.ndarray):
-            newData = np.array(newData)
-        self.keys[keyId] = keyId
-        self.data[keyId] = newData
-        self.lengths[keyId] = max(self.data[keyId].shape)
-        self.type[keyId] = dataType
+    def insert(self, key_id, new_data, data_type):
+        if not isinstance(new_data, np.ndarray):
+            new_data = np.array(new_data)
+        self.keys[key_id] = key_id
+        self.data[key_id] = new_data
+        self.lengths[key_id] = max(self.data[key_id].shape)
+        self.type[key_id] = data_type

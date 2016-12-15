@@ -1,160 +1,158 @@
 import numpy as np
 
-from mr_gpi.compress_shape import compressShape
-from mr_gpi.decompress_shape import decompressShape
+from mr_gpi.compress_shape import compress_shape
+from mr_gpi.decompress_shape import decompress_shape
 from mr_gpi.holder import Holder
 
 
 def addblock(self, *args):
-    setblock(self, len(self.blockEvents) + 1, *args)
+    setblock(self, len(self.block_events) + 1, *args)
 
 
-def setblock(self, blockIndex, *args):
-    self.blockEvents[blockIndex] = np.zeros(6)
+def setblock(self, block_index, *args):
+    self.block_events[block_index] = np.zeros(6)
     duration = 0
     for event in args:
         if event.type == 'rf':
             mag = abs(event.signal)
             amplitude = np.max(mag)
             mag = np.divide(mag, amplitude)
-            # Following 2 lines of code are workarounds for numpy's divide functions returning NaN when mathematical
-            # edge cases are encountered (eg., divide by 0) (fix for line 49)
-            nanIndices = np.isnan(mag)
-            mag[nanIndices] = 0
+            # Following two lines of code are workarounds for numpy's divide functions returning NaN when mathematical
+            # edge cases are encountered (eg., divide by 0)
+            mag[np.isnan(mag)] = 0
             phase = np.angle(event.signal)
-            lessThanZeroIndices = np.where(phase < 0)
-            phase[lessThanZeroIndices] += 2 * np.pi
+            phase[np.where(phase < 0)] += 2 * np.pi
             phase /= 2 * np.pi
 
-            magShape = compressShape(mag)
-            data = np.array([[magShape.num_samples]])
-            data = np.append(data, magShape.data, axis=1)
-            magId, found = self.shapeLibrary.find(data)
+            mag_shape = compress_shape(mag)
+            data = np.array([[mag_shape.num_samples]])
+            data = np.append(data, mag_shape.data, axis=1)
+            mag_id, found = self.shape_library.find(data)
             if not found:
-                self.shapeLibrary.insert(magId, data, None)
+                self.shape_library.insert(mag_id, data, None)
 
-            phaseShape = compressShape(phase)
-            data = np.array([[magShape.num_samples]])
-            data = np.append(data, phaseShape.data, axis=1)
-            phaseId, found = self.shapeLibrary.find(data)
+            phase_shape = compress_shape(phase)
+            data = np.array([[mag_shape.num_samples]])
+            data = np.append(data, phase_shape.data, axis=1)
+            phase_id, found = self.shape_library.find(data)
             if not found:
-                self.shapeLibrary.insert(phaseId, data, None)
+                self.shape_library.insert(phase_id, data, None)
 
-            data = np.array([amplitude, magId, phaseId, event.freqOffset, event.phaseOffset, event.deadTime])
-            dataId, found = self.rfLibrary.find(data)
+            data = np.array([amplitude, mag_id, phase_id, event.freq_offset, event.phase_offset, event.dead_time])
+            data_id, found = self.rf_library.find(data)
             if not found:
-                self.rfLibrary.insert(dataId, data, None)
+                self.rf_library.insert(data_id, data, None)
 
-            self.blockEvents[blockIndex][1] = dataId
-            duration = max(duration, max(mag.shape) * self.rfRasterTime + event.deadTime)
+            self.block_events[block_index][1] = data_id
+            duration = max(duration, max(mag.shape) * self.rf_raster_time + event.dead_time)
         elif event.type == 'grad':
-            channelNum = ['x', 'y', 'z'].index(event.channel)
+            channel_num = ['x', 'y', 'z'].index(event.channel)
             amplitude = max(abs(event.waveform))
             g = event.waveform / amplitude
-            shape = compressShape(g)
+            shape = compress_shape(g)
             data = np.array([[shape.num_samples]])
             data = np.append(data, shape.data, axis=1)
-            shapeId, found = self.shapeLibrary.find(data)
+            shape_id, found = self.shape_library.find(data)
             if not found:
-                self.shapeLibrary.insert(shapeId, data)
-            data = np.array([amplitude, shapeId])
-            index, found = self.gradLibrary.find(data)
+                self.shape_library.insert(shape_id, data)
+            data = np.array([amplitude, shape_id])
+            index, found = self.grad_library.find(data)
             if not found:
-                self.gradLibrary.insert(index, data, 'g')
-            idx = 2 + channelNum
-            self.blockEvents[blockIndex][idx] = index
-            duration = max(duration, max() * self.gradRasterTime)
+                self.grad_library.insert(index, data, 'g')
+            idx = 2 + channel_num
+            self.blockEvents[block_index][idx] = index
+            duration = max(duration, max() * self.grad_raster_time)
         elif event.type == 'trap':
-            channelNum = ['x', 'y', 'z'].index(event.channel)
-            data = np.array([event.amplitude, event.riseTime, event.flatTime, event.fallTime])
-            index, found = self.gradLibrary.find(data)
+            channel_num = ['x', 'y', 'z'].index(event.channel)
+            data = np.array([event.amplitude, event.rise_time, event.flat_time, event.fall_time])
+            index, found = self.grad_library.find(data)
             if not found:
-                self.gradLibrary.insert(index, data, 't')
-            idx = 2 + channelNum
-            self.blockEvents[blockIndex][idx] = index
-            duration = max(duration, event.riseTime + event.flatTime + event.fallTime)
+                self.grad_library.insert(index, data, 't')
+            idx = 2 + channel_num
+            self.block_events[block_index][idx] = index
+            duration = max(duration, event.rise_time + event.flat_time + event.fall_time)
         elif event.type == 'adc':
             data = np.array(
-                [event.numSamples, event.dwell, event.delay, event.freqOffset, event.phaseOffset, event.deadTime])
-            index, found = self.adcLibrary.find(data)
+                [event.num_samples, event.dwell, event.delay, event.freq_offset, event.phase_offset, event.dead_time])
+            index, found = self.adc_library.find(data)
             if not found:
-                self.adcLibrary.insert(index, data, None)
-            self.blockEvents[blockIndex][5] = index
-            duration = max(duration, event.delay + event.numSamples * event.dwell + event.deadTime)
+                self.adc_library.insert(index, data, None)
+            self.block_events[block_index][5] = index
+            duration = max(duration, event.delay + event.num_samples * event.dwell + event.dead_time)
         elif event.type == 'delay':
             data = np.array([event.delay])
-            index, found = self.delayLibrary.find(data)
+            index, found = self.delay_library.find(data)
             if not found:
-                self.delayLibrary.insert(index, data, None)
-            self.blockEvents[blockIndex][0] = index
+                self.delay_library.insert(index, data, None)
+            self.block_events[block_index][0] = index
             duration = max(duration, event.delay)
 
 
-def getblock(self, blockIndex):
+def getblock(self, block_index):
     block = {}
-    eventInd = self.blockEvents[blockIndex]
-    if eventInd[0] > 0:
+    event_ind = self.block_events[block_index]
+    if event_ind[0] > 0:
         delay = Holder()
         delay.type = 'delay'
-        delay.delay = self.delayLibrary.data[eventInd[0]]
+        delay.delay = self.delay_library.data[event_ind[0]]
         block['delay'] = delay
-    elif eventInd[1] > 0:
+    elif event_ind[1] > 0:
         rf = Holder()
         rf.type = 'rf'
-        libData = self.rfLibrary.data[eventInd[1]]
+        lib_data = self.rf_library.data[event_ind[1]]
 
-        amplitude, magShape, phaseShape = libData[0], libData[1], libData[2]
-        shapeData = self.shapeLibrary.data[magShape]
+        amplitude, mag_shape, phase_shape = lib_data[0], lib_data[1], lib_data[2]
+        shape_data = self.shape_library.data[mag_shape]
         compressed = Holder()
-        compressed.num_samples = shapeData[0][0]
-        compressed.data = shapeData[0][1:]
+        compressed.num_samples = shape_data[0][0]
+        compressed.data = shape_data[0][1:]
         compressed.data = compressed.data.reshape((1, compressed.data.shape[0]))
-        mag = decompressShape(compressed)
-        shapeData = self.shapeLibrary.data[phaseShape]
-        compressed.num_samples = shapeData[0][0]
-        compressed.data = shapeData[0][1:shapeData.shape[1]]
+        mag = decompress_shape(compressed)
+        shape_data = self.shape_library.data[phase_shape]
+        compressed.num_samples = shape_data[0][0]
+        compressed.data = shape_data[0][1:shape_data.shape[1]]
         compressed.data = compressed.data.reshape((1, compressed.data.shape[0]))
-        phase = decompressShape(compressed)
+        phase = decompress_shape(compressed)
         rf.signal = 1j * 2 * np.pi * phase
         rf.signal = amplitude * mag * np.exp(rf.signal)
-        rf.t = [(x * self.rfRasterTime) for x in range(1, max(mag.shape) + 1)]
+        rf.t = [(x * self.rf_raster_time) for x in range(1, max(mag.shape) + 1)]
         rf.t = np.reshape(rf.t, (1, len(rf.t)))
-        rf.freqOffset = libData[4]
-        rf.phaseOffset = libData[5]
-        if max(libData.shape) < 6:
-            libData = np.append(libData, 0)
-        rf.deadTime = libData[5]
+        rf.freq_offset = lib_data[3]
+        rf.phase_offset = lib_data[4]
+        if max(lib_data.shape) < 6:
+            lib_data = np.append(lib_data, 0)
+        rf.dead_time = lib_data[5]
 
         block['rf'] = rf
-    gradChannels = ['gx', 'gy', 'gz']
-    for i in range(1, len(gradChannels) + 1):
-        if eventInd[2 + (i - 1)] > 0:
+    grad_channels = ['gx', 'gy', 'gz']
+    for i in range(1, len(grad_channels) + 1):
+        if event_ind[2 + (i - 1)] > 0:
             grad, compressed = Holder(), Holder()
-            type = self.gradLibrary.type[eventInd[2 + (i - 1)]]
-            libData = self.gradLibrary.data[eventInd[2 + (i - 1)]]
+            type = self.grad_library.type[event_ind[2 + (i - 1)]]
+            lib_data = self.grad_library.data[event_ind[2 + (i - 1)]]
             grad.type = 'trap' if type == 't' else 'grad'
-            grad.channel = gradChannels[i - 1][1]
+            grad.channel = grad_channels[i - 1][1]
             if grad.type == 'grad':
-                amplitude = libData[0]
-                shapeId = libData[1]
-                shapeData = self.shapeLibrary.data[shapeId]
-                compressed.num_samples = shapeData[0]
-                compressed.data = shapeData[0][1:shapeData.shape[1]]
-                g = decompressShape(compressed)
+                amplitude = lib_data[0]
+                shape_id = lib_data[1]
+                shape_data = self.shape_library.data[shape_id]
+                compressed.num_samples = shape_data[0]
+                compressed.data = shape_data[0][1:shape_data.shape[1]]
+                g = decompress_shape(compressed)
                 grad.waveform = amplitude * g
-                grad.t = np.array(([x for x in range(1, max(g.shape))] * self.gradRasterTime))
+                grad.t = np.array(([x for x in range(1, max(g.shape))] * self.grad_raster_time))
             else:
-                grad.amplitude, grad.riseTime, grad.flatTime, grad.fallTime = [libData[x] for x in range(4)]
-                grad.area = grad.amplitude * (grad.flatTime + grad.riseTime / 2 + grad.fallTime / 2)
-                grad.flatArea = grad.amplitude * grad.flatTime
-            block[gradChannels[i - 1]] = grad
+                grad.amplitude, grad.rise_time, grad.flat_time, grad.fall_time = [lib_data[x] for x in range(4)]
+                grad.area = grad.amplitude * (grad.flat_time + grad.rise_time / 2 + grad.fall_time / 2)
+                grad.flat_area = grad.amplitude * grad.flat_time
+            block[grad_channels[i - 1]] = grad
 
-    if eventInd[5] > 0:
-        libData = self.adcLibrary.data[eventInd[5]]
-        if max(libData.shape) < 6:
-            libData[len(libData) + 1] = 0
+    if event_ind[5] > 0:
+        lib_data = self.adc_library.data[event_ind[5]]
+        if max(lib_data.shape) < 6:
+            lib_data = np.append(lib_data, 0)
         adc = Holder()
-        adc.numSamples, adc.dwell, adc.delay, adc.freqOffset, adc.phaseOffset, adc.deadTime = [libData[x] for x in
+        adc.num_samples, adc.dwell, adc.delay, adc.freq_offset, adc.phase_offset, adc.dead_time = [lib_data[x] for x in
                                                                                                range(6)]
         adc.type = 'adc'
         block['adc'] = adc

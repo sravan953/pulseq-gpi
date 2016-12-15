@@ -4,127 +4,126 @@ from mr_gpi.eventlib import EventLibrary
 
 
 def read(self, path):
-    inputFile = open(path, 'r')
-    self.shapeLibrary = EventLibrary()
-    self.rfLibrary = EventLibrary()
-    self.gradLibrary = EventLibrary()
-    self.adcLibrary = EventLibrary()
-    self.delayLibrary = EventLibrary()
-    self.blockEvents = {}
-    self.rfRasterTime = self.system.rfRasterTime
-    self.gradRasterTime = self.system.gradRasterTime
+    input_file = open(path, 'r')
+    self.shape_library = EventLibrary()
+    self.rf_library = EventLibrary()
+    self.grad_library = EventLibrary()
+    self.adc_library = EventLibrary()
+    self.delay_library = EventLibrary()
+    self.block_events = {}
+    self.rf_raster_time = self.system.rf_raster_time
+    self.grad_raster_time = self.system.grad_raster_time
 
     while True:
-        section = skipComments(inputFile)
+        section = skip_comments(input_file)
         if section == -1:
             break
         if section == '[BLOCKS]':
-            self.blockEvents = readBlocks(inputFile)
+            self.block_events = read_blocks(input_file)
         elif section == '[RF]':
-            self.rfLibrary = readEvents(inputFile, 1, None, None)
+            self.rf_library = read_events(input_file, 1, None, None)
         elif section == '[GRAD]':
-            self.gradLibrary = readEvents(inputFile, 1, 'g', self.gradLibrary)
+            self.grad_library = read_events(input_file, 1, 'g', self.grad_library)
         elif section == '[TRAP]':
-            self.gradLibrary = readEvents(inputFile, [1, 1e-6, 1e-6, 1e-6], 't', self.gradLibrary)
+            self.grad_library = read_events(input_file, [1, 1e-6, 1e-6, 1e-6], 't', self.grad_library)
         elif section == '[ADC]':
-            self.adcLibrary = readEvents(inputFile, [1, 1e-9, 1e-6, 1, 1], None, None)
+            self.adc_library = read_events(input_file, [1, 1e-9, 1e-6, 1, 1], None, None)
         elif section == '[DELAYS]':
-            self.delayLibrary = readEvents(inputFile, 1e-6, None, None)
+            self.delay_library = read_events(input_file, 1e-6, None, None)
         elif section == '[SHAPES]':
-            self.shapeLibrary = readShapes(inputFile)
+            self.shape_library = read_shapes(input_file)
 
 
-def readBlocks(inputFile):
-    inputFile.readline()
-    line = stripLine(inputFile)
+def read_blocks(input_file):
+    # inputFile.readline()
+    line = strip_line(input_file)
     for x in range(len(line)):
         line[x] = float(line[x])
 
-    eventTable = []
+    event_table = []
     while not (line == '\n' or line[0] == '#'):
-        eventRow = []
-        for c in line:
-            eventRow.append(float(c))
-        eventTable.append(eventRow)
+        event_row = []
+        for c in line[1:]:
+            event_row.append(float(c))
+        event_table.append(event_row)
 
-        line = stripLine(inputFile)
+        line = strip_line(input_file)
         # Break here to avoid crash when the while loop condition is evaluated for line != '\n'
         # Crash occurs because spaces have been eliminated
         if len(line) == 0:
             break
 
-    blockEvents = {}
-    for x in range(len(eventTable)):
-        blockEvents[x + 1] = np.array(eventTable[x])
+    block_events = {}
+    for x in range(len(event_table)):
+        block_events[x + 1] = np.array(event_table[x])
 
-    return blockEvents
+    return block_events
 
 
-def readEvents(inputFile, scale, type, eventLib):
-    scale = 1 if scale is not None else scale
-    eventLibrary = eventLib if eventLib is not None else EventLibrary()
+def read_events(inputFile, scale, type, event_lib):
+    scale = 1 if scale is None else scale
+    event_library = event_lib if event_lib is not None else EventLibrary()
 
-    line = stripLine(inputFile)
+    line = strip_line(inputFile)
     for x in range(len(line)):
         line[x] = float(line[x])
 
     while not (line == '\n' or line[0] == '#'):
-        id = line[0]
-        data = np.multiply(line, scale)
-        eventLibrary.insert(id, data, type)
+        event_id = line[0]
+        data = np.multiply(line[1:], scale)
+        event_library.insert(event_id, data, type)
 
-        line = stripLine(inputFile)
-        if line == []:
+        line = strip_line(inputFile)
+        if not line:
             break
 
         for x in range(len(line)):
             line[x] = float(line[x])
 
-    return eventLibrary
+    return event_library
 
 
-def readShapes(inputFile):
-    shapeLibrary = EventLibrary()
+def read_shapes(input_file):
+    shape_library = EventLibrary()
 
-    stripLine(inputFile)
-    line = stripLine(inputFile)
+    strip_line(input_file)
+    line = strip_line(input_file)
 
     while not (line == -1 or len(line) == 0 or line[0] != 'shape_id'):
         id = int(line[1])
-        line = skipComments(inputFile)
-        line = line.split(' ')
-        numSamples = line[1]
+        line = skip_comments(input_file)
+        num_samples = int(line.split(' ')[1])
         data = []
-        line = skipComments(inputFile)
+        line = skip_comments(input_file)
         line = line.split(' ')
         while not (len(line) == 0 or line[0] == '#'):
             data.append(float(line[0]))
-            line = stripLine(inputFile)
-        line = skipComments(inputFile)
+            line = strip_line(input_file)
+        line = skip_comments(input_file)
         # line could be -1 since -1 is EOF marker, returned from skipComments(inputFile)
         line = line.split(' ') if line != -1 else line
-        data.insert(int(numSamples), 0)
+        data.insert(0, num_samples)
         data = np.reshape(data, [1, len(data)])
-        shapeLibrary.insert(id, data, None)
+        shape_library.insert(id, data, None)
 
-    return shapeLibrary
+    return shape_library
 
 
-def skipComments(inputFile):
-    line = inputFile.readline()
+def skip_comments(input_file):
+    line = input_file.readline()
     if line == '':
         return -1
     while line == '\n' or line[0] == '#':
-        line = inputFile.readline()
+        line = input_file.readline()
         if line == '':
             return -1
     line = line.strip()
     return line
 
 
-def stripLine(inputFile):
+def strip_line(input_file):
     # Remove spaces and newline whitespace
-    line = inputFile.readline()
+    line = input_file.readline()
     line = line.strip()
     line = line.split(' ')
     while '' in line:

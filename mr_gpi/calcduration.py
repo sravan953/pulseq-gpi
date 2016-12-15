@@ -1,11 +1,11 @@
 from mr_gpi.holder import Holder
 
 
-def calcduration(dict):
-    return calcdurationForHolder(*dict.values())
+def calcduration(input_dict):
+    return calcholderduration(*input_dict.values())
 
 
-def calcdurationForHolder(*values):
+def calcholderduration(*values):
     duration = 0
     for event in values:
         if not isinstance(event, Holder):
@@ -14,13 +14,13 @@ def calcdurationForHolder(*values):
         if event.type == 'delay':
             duration = max(duration, event.delay)
         elif event.type == 'rf':
-            duration = max(duration, event.t[0][-1] + event.deadTime)
+            duration = max(duration, event.t[0][-1] + event.dead_time)
         elif event.type == 'grad':
             duration = max(duration, event.t[0][-1])
         elif event.type == 'adc':
-            adcTime = event.delay + event.numSamples * event.dwell + event.deadTime
-            duration = max(duration, adcTime)
+            adc_time = event.delay + event.num_samples * event.dwell + event.dead_time
+            duration = max(duration, adc_time)
         elif event.type == 'trap':
-            duration = max(duration, event.riseTime + event.flatTime + event.fallTime)
+            duration = max(duration, event.rise_time + event.flat_time + event.fall_time)
 
     return duration

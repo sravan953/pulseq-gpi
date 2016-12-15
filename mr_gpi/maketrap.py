@@ -7,57 +7,53 @@ from mr_gpi.opts import Opts
 def maketrapezoid(**kwargs):
     channel = kwargs.get("channel", "z")
     system = kwargs.get("system", Opts())
-    durationResult = kwargs.get("duration", 0)
-    areaResult = kwargs.get("area", 0)
-    flatTimeResult = kwargs.get("flatTime", 0)
-    flatAreaResult = kwargs.get("flatArea", 0)
-    amplitudeResult = kwargs.get("amplitude", 0)
-    maxGradResult = kwargs.get("maxGrad", 0)
-    maxSlewResult = kwargs.get("maxSlew", 0)
-    riseTimeResult = kwargs.get("riseTime", 0)
+    duration_result = kwargs.get("duration", 0)
+    area_result = kwargs.get("area", 0)
+    flat_time_result = kwargs.get("flat_time", 0)
+    flat_area_result = kwargs.get("flat_area", 0)
+    amplitude_result = kwargs.get("amplitude", 0)
+    max_grad = kwargs.get("max_grad", 0)
+    max_slew = kwargs.get("max_slew", 0)
+    rise_time = kwargs.get("rise_time", 0)
 
-    maxSlew = system.maxSlew
-    riseTime = system.riseTime
-    maxGrad = system.maxGrad
+    max_grad = max_grad if max_grad > 0 else system.max_grad
+    max_slew = max_slew if max_slew > 0 else system.max_slew
+    rise_time = rise_time if rise_time > 0 else system.rise_time
 
-    maxGrad = maxGradResult if maxGradResult > 0 else maxGrad
-    maxSlew = maxSlewResult if maxSlewResult > 0 else maxSlew
-    riseTime = riseTimeResult if riseTimeResult > 0 else riseTime
-
-    if flatTimeResult > 0:
-        amplitude = amplitudeResult if (amplitudeResult != 0) else (flatAreaResult / flatTimeResult)
-        if riseTime == 0:
-            riseTime = abs(amplitude) / maxSlew
-            riseTime = ceil(riseTime / system.gradRasterTime) * system.gradRasterTime
-        fallTime, flatTime = riseTime, flatTimeResult
-    elif durationResult > 0:
-        if amplitudeResult != 0:
-            amplitude = amplitudeResult
+    if flat_time_result > 0:
+        amplitude = amplitude_result if (amplitude_result != 0) else (flat_area_result / flat_time_result)
+        if rise_time == 0:
+            rise_time = abs(amplitude) / max_slew
+            rise_time = ceil(rise_time / system.grad_raster_time) * system.grad_raster_time
+        fall_time, flat_time = rise_time, flat_time_result
+    elif duration_result > 0:
+        if amplitude_result != 0:
+            amplitude = amplitude_result
         else:
-            if riseTime == 0:
-                dC = 1 / abs(2 * maxSlew) + 1 / abs(2 * maxSlew)
-                amplitude = (durationResult - sqrt(pow(durationResult, 2) - 4 * abs(areaResult) * dC)) / (
+            if rise_time == 0:
+                dC = 1 / abs(2 * max_slew) + 1 / abs(2 * max_slew)
+                amplitude = (duration_result - sqrt(pow(duration_result, 2) - 4 * abs(area_result) * dC)) / (
                     2 * dC)
             else:
-                amplitude = areaResult / (durationResult - riseTime)
+                amplitude = area_result / (duration_result - rise_time)
 
-        if riseTime == 0:
-            riseTime = ceil(
-                amplitude / maxSlew / system.gradRasterTime) * system.gradRasterTime
+        if rise_time == 0:
+            rise_time = ceil(
+                amplitude / max_slew / system.grad_raster_time) * system.grad_raster_time
 
-        fallTime = riseTime
-        flatTime = (durationResult - riseTime - fallTime)
+        fall_time = rise_time
+        flat_time = (duration_result - rise_time - fall_time)
 
-        amplitude = areaResult / (riseTime / 2 + fallTime / 2 + flatTime) if amplitudeResult == 0 else amplitude
+        amplitude = area_result / (rise_time / 2 + fall_time / 2 + flat_time) if amplitude_result == 0 else amplitude
 
     grad = Holder()
     grad.type = 'trap'
     grad.channel = channel
     grad.amplitude = amplitude
-    grad.riseTime = riseTime
-    grad.flatTime = flatTime
-    grad.fallTime = fallTime
-    grad.area = amplitude * (flatTime + riseTime / 2 + fallTime / 2)
-    grad.flatArea = amplitude * flatTime
+    grad.rise_time = rise_time
+    grad.flat_time = flat_time
+    grad.fall_time = fall_time
+    grad.area = amplitude * (flat_time + rise_time / 2 + fall_time / 2)
+    grad.flatArea = amplitude * flat_time
 
     return grad
