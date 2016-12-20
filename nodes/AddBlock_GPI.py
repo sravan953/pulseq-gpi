@@ -46,7 +46,7 @@ class AddBlockWidgets(gpi.GenericWidgetGroup):
         else:
             if self.clicked_button_index == 5:
                 # Return 'gy_pre' because values are pre-computed in ConfigSeq_GPI Node
-                return {'event': 'gy_pre'}
+                return {'event': 'GyPre'}
             else:
                 values = {'event': self.clicked_button_name, 'data': [x.get_val() for x in self.te_list]}
                 return values
@@ -133,7 +133,7 @@ class ExternalNode(gpi.NodeAPI):
 
     def compute(self):
         if 'ComputeEvents' in self.widgetEvents() or self.portEvents():
-            input = self.getData('sequence_obj_in')
+            input = self.getData('input')
             system = input['system']
 
             current_events, current_event_names = [], []
@@ -150,8 +150,8 @@ class ExternalNode(gpi.NodeAPI):
                     kwargs_for_sinc = {"flip_angle": system.flip, "system": system, "duration": duration,
                                        "freq_offset": freq_offset, "phase_offset": phase_offset,
                                        "time_bw_product": time_bw_product,
-                                       "apodization": apodization, "max_grad": system.maxGrad,
-                                       "max_slew": system.maxSlew,
+                                       "apodization": apodization, "max_grad": system.max_grad,
+                                       "max_slew": system.max_slew,
                                        "slice_thickness": slice_thickness}
                     rf, gz = makesincpulse(**kwargs_for_sinc)
                     current_events.append(rf)
@@ -163,7 +163,7 @@ class ExternalNode(gpi.NodeAPI):
                     flat_area = system.Nx * (1 / system.fov)
                     kwargs_for_trap = {"channel": channel, "system": system, "duration": duration, "area": area,
                                        "flat_time": flat_time, "flat_area": flat_area, "amplitude": amplitude,
-                                       "max_grad": system.maxGrad, "max_slew": system.maxSlew, "rise_time": rise_time}
+                                       "max_grad": system.max_grad, "max_slew": system.max_slew, "rise_time": rise_time}
                     current_events.append(maketrapezoid(**kwargs_for_trap))
                 elif event_name == 'G':
                     channel = event_values[0]
@@ -171,7 +171,7 @@ class ExternalNode(gpi.NodeAPI):
                                                                                   range(1, 7)]
                     kwargs_for_trap = {"channel": channel, "system": system, "duration": duration, "area": area,
                                        "flat_time": flat_time, "flat_area": flat_area, "amplitude": amplitude,
-                                       "max-grad": system.maxGrad, "max_slew": system.maxSlew, "rise_time": rise_time}
+                                       "max_grad": system.max_grad, "max_slew": system.max_slew, "rise_time": rise_time}
                     current_events.append(maketrapezoid(**kwargs_for_trap))
                 elif event_name == 'GyPre':
                     pass
@@ -190,10 +190,10 @@ class ExternalNode(gpi.NodeAPI):
                     current_event_names.append('Gz')
 
             all_events = input['events'] if 'events' in input else []
-            all_event_names = input['eventNames'] if 'eventNames' in input else []
+            all_event_names = input['event_names'] if 'event_names' in input else []
             all_events.append(current_events)
             all_event_names.append(current_event_names)
-            input['events'], input['eventNames'] = all_events, all_event_names
+            input['events'], input['event_names'] = all_events, all_event_names
             self.setData('output', input)
 
             # To display the computed info inside the node
