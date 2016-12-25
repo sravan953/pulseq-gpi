@@ -26,6 +26,7 @@ class ExternalNode(gpi.NodeAPI):
         self.addWidget('StringBox', 'ADC Dead Time (s)', placeholder="adcDeadTime")
         self.addWidget('StringBox', 'RF Raster Time (s)', placeholder="rfRaster")
         self.addWidget('StringBox', 'Gradient Raster Time (s)', placeholder="gradRaster")
+        self.addWidget('TextBox', 'EventInfo')
 
         # IO Ports
         self.addOutPort('output', 'DICT')
@@ -49,16 +50,22 @@ class ExternalNode(gpi.NodeAPI):
             rf_raster_time = float(self.getVal('RF Raster Time (s)'))
             grad_raster_time = float(self.getVal('Gradient Raster Time (s)'))
 
-            kwargs_for_opts = {"max_grad": max_grad, "grad_unit": "mT/m", "max_slew": max_slew, "slew_unit": "T/m/ms", "te": te,
-                             "tr": tr, "flip": alpha, "fov": fov, "Nx": Nx, "Ny": Ny, "rise_time": rise_time,
-                             "rf_dead_time": rf_dead_time, "adc_dead_time": adc_dead_time, "rf_raster_time": rf_raster_time,
-                             "grad_raster_time": grad_raster_time}
+            kwargs_for_opts = {"max_grad": max_grad, "grad_unit": "mT/m", "max_slew": max_slew, "slew_unit": "T/m/ms",
+                               "te": te,
+                               "tr": tr, "flip": alpha, "fov": fov, "Nx": Nx, "Ny": Ny, "rise_time": rise_time,
+                               "rf_dead_time": rf_dead_time, "adc_dead_time": adc_dead_time,
+                               "rf_raster_time": rf_raster_time,
+                               "grad_raster_time": grad_raster_time}
             system = Opts(**kwargs_for_opts)
             data['system'] = system
             data['gy_pre'] = self.compute_gypre(fov, Ny, system)
             self.setData('output', data)
-        except ValueError:
-            self.log.node('Please make sure you have input valid data.')
+
+            # To display the computed info inside the node
+            self.setAttr('EventInfo', val=str(system))
+        except ValueError as e:
+            self.log.node('Please make sure you have input valid data:')
+            self.log.node(e)
 
         return 0
 

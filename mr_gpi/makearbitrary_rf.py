@@ -6,6 +6,7 @@ from mr_gpi.holder import Holder
 from mr_gpi.maketrap import maketrapezoid
 from mr_gpi.opts import Opts
 
+# Currently not supported
 
 def makearbitrarygrad(**kwargs):
     flip_angle = kwargs.get("flip_angle")

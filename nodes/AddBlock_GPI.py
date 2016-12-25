@@ -1,42 +1,55 @@
 import gpi
+import h5py
 from gpi import QtGui
 
 from mr_gpi.makeadc import makeadc
+from mr_gpi.makearbitrary_grad import makearbitrarygrad
 from mr_gpi.makedelay import makedelay
 from mr_gpi.makesinc import makesincpulse
 from mr_gpi.maketrap import maketrapezoid
 
 
 class AddBlockWidgets(gpi.GenericWidgetGroup):
-    """A unique widget that display the appropriate number of StringBoxes.
+    """A unique widget that display a variable number of StringBoxes (or FileBrowser) depending on the Event being
+    configured.
     """
 
     valueChanged = gpi.Signal()
 
     def __init__(self, title, parent=None):
         super(AddBlockWidgets, self).__init__(title, parent)
-        self.button_names_list = ['Off', 'Delay', 'Rf', 'Gx', 'G', 'GyPre', 'ADC']
+        self.button_names_list = ['Off', 'Delay', 'Rf', 'Gx', 'G', 'GyPre', 'ArbGrad', 'ADC']
         self.clicked_button_name, self.clicked_button_index = '', 0
-        self.buttons_list, self.te_list = [], []
+        self.buttons_list, self.text_edit_list = [], []
         col_count = 0
         wdg_layout = QtGui.QGridLayout()
 
+        # Adding PushButtons
         for name in self.button_names_list:
             new_button = QtGui.QPushButton(name)
             new_button.setCheckable(True)
             new_button.setAutoExclusive(True)
             new_button.clicked.connect(self.button_clicked)
             new_button.clicked.connect(self.valueChanged)
-            # addWidget(widget, row, col, rowSpan, colSpan)
+            # Syntax: addWidget(widget, row, col, rowSpan, colSpan)
             wdg_layout.addWidget(new_button, 0, col_count, 1, 1)
             self.buttons_list.append(new_button)
             col_count += 1
 
-        for x in range(8):
-            self.te = gpi.StringBox(str(x))
-            self.te.set_visible(False)
-            wdg_layout.addWidget(self.te, x + 1, 1, 1, 6)
-            self.te_list.append(self.te)
+        # Adding TextEdits
+        for x in range(len(self.button_names_list)):
+            self.text_edit = gpi.StringBox(str(x))
+            self.text_edit.set_visible(False)
+            # Syntax: addWidget(widget, row, col, rowSpan, colSpan)
+            wdg_layout.addWidget(self.text_edit, x + 1, 1, 1, 6)
+            self.text_edit_list.append(self.text_edit)
+
+        # Adding FileBrowser
+        self.file_browser = gpi.OpenFileBrowser('Read .hdf5')
+        self.file_browser.set_button_title('Read .hdf5')
+        self.file_browser.set_visible(False)
+        wdg_layout.addWidget(self.file_browser, len(self.button_names_list) + 1, 1, 1, 4)
+
         self.setLayout(wdg_layout)
         self.buttons_list[0].setChecked(True)
 
@@ -47,58 +60,80 @@ class AddBlockWidgets(gpi.GenericWidgetGroup):
             if self.clicked_button_index == 5:
                 # Return 'gy_pre' because values are pre-computed in ConfigSeq_GPI Node
                 return {'event': 'GyPre'}
+            elif self.clicked_button_index == 6:
+                values = {'event': self.clicked_button_name, 'data': [x.get_val() for x in self.text_edit_list],
+                          'file': self.file_browser.get_val()}
+                return values
             else:
-                values = {'event': self.clicked_button_name, 'data': [x.get_val() for x in self.te_list]}
+                values = {'event': self.clicked_button_name, 'data': [x.get_val() for x in self.text_edit_list]}
                 return values
 
     def set_val(self, val):
         if len(val) == 0:
-            self.hide_textedits()
+            self.hide_text_edits()
+            self.hide_file_browser()
         else:
             self.clicked_button_name = val['event']
             self.clicked_button_index = self.button_names_list.index(self.clicked_button_name)
             self.buttons_list[self.clicked_button_index].setChecked(True)
-            self.show_textedits(self.clicked_button_index)
+            self.show_text_edits(self.clicked_button_index)
             data = val['data']
-            for x in range(8):
-                self.te_list[x].set_val(data[x])
+            for x in range(len(self.button_names_list)):
+                self.text_edit_list[x].set_val(data[x])
+            self.file_browser.set_val(val['file'] if 'file' in val else '')
 
     def button_clicked(self):
         for button in self.buttons_list:
             if button.isChecked():
                 self.clicked_button_index = self.buttons_list.index(button)
                 self.clicked_button_name = self.button_names_list[self.clicked_button_index]
-        self.show_textedits(self.clicked_button_index)
+        self.show_text_edits(self.clicked_button_index)
 
-    def show_textedits(self, index):
-        self.hide_textedits()
+    def show_text_edits(self, index):
+        self.hide_text_edits()
+        self.hide_file_browser()
 
         if index == 1:
-            delayLabels = ['delay']
-            self.te_list[0].set_visible(True)
-            self.te_list[0].set_placeholder(delayLabels[0])
+            # Delay
+            delay_label = 'Delay (s)'
+            self.text_edit_list[0].set_visible(True)
+            self.text_edit_list[0].set_placeholder(delay_label)
         elif index == 2:
-            sincLabels = ['duration (s)', 'freqOffset', 'phaseOffset', 'timeBwProduct', 'apodization',
-                          'sliceThickness (m)']
-            [self.te_list[x].set_visible(True) for x in range(6)]
-            [self.te_list[x].set_placeholder(sincLabels[x]) for x in range(6)]
+            # RF
+            sinc_labels = ['Duration (s)', 'Frequency Offset', 'Phase Offset', 'Time Bw Product', 'Apodization',
+                           'Slice Thickness (m)']
+            [self.text_edit_list[x].set_visible(True) for x in range(len(sinc_labels))]
+            [self.text_edit_list[x].set_placeholder(sinc_labels[x]) for x in range(len(sinc_labels))]
         elif index == 3:
-            trapLabels = ['flatTime (s)']
-            self.te_list[0].set_visible(True)
-            self.te_list[0].set_placeholder(trapLabels[0])
+            # Gx
+            trap_label = 'Flat Time (s)'
+            self.text_edit_list[0].set_visible(True)
+            self.text_edit_list[0].set_placeholder(trap_label)
         elif index == 4:
-            trapLabels = ['channel', 'duration (s)', 'area', 'flatTime (s)', 'flatArea', 'amplitude (Hz)',
-                          'riseTime (s)']
-            [self.te_list[x].set_visible(True) for x in range(7)]
-            [self.te_list[x].set_placeholder(trapLabels[x]) for x in range(7)]
+            # G
+            trap_labels = ['Channel', 'Duration (s)', 'Area', 'Flat Time (s)', 'Flat Area', 'Amplitude (Hz)',
+                           'Rise Time (s)']
+            [self.text_edit_list[x].set_visible(True) for x in range(len(trap_labels))]
+            [self.text_edit_list[x].set_placeholder(trap_labels[x]) for x in range(len(trap_labels))]
         elif index == 6:
-            adcLabels = ['numSamples', 'dwell (s)', 'duration (s)', 'delay (s)', 'freqOffset', 'phaseOffset']
-            [self.te_list[x].set_visible(True) for x in range(6)]
-            [self.te_list[x].set_placeholder(adcLabels[x]) for x in range(6)]
+            # Arbitrary Grad
+            arb_grad_labels = ['Channel', 'Maximum Gradient', 'Maximum Slew']
+            [self.text_edit_list[x].set_visible(True) for x in range(len(arb_grad_labels))]
+            [self.text_edit_list[x].set_placeholder(arb_grad_labels[x]) for x in range(len(arb_grad_labels))]
+            self.file_browser.set_visible(True)
+        elif index == 7:
+            # ADC
+            adc_labels = ['Number of samples', 'Dwell (s)', 'Duration (s)', 'Delay (s)', 'Frequency Offset',
+                          'Phase Offset']
+            [self.text_edit_list[x].set_visible(True) for x in range(len(adc_labels))]
+            [self.text_edit_list[x].set_placeholder(adc_labels[x]) for x in range(len(adc_labels))]
 
-    def hide_textedits(self):
-        [x.set_visible(False) for x in self.te_list]
-        [x.set_val("") for x in self.te_list]
+    def hide_text_edits(self):
+        [x.set_visible(False) for x in self.text_edit_list]
+        [x.set_val("") for x in self.text_edit_list]
+
+    def hide_file_browser(self):
+        self.file_browser.set_visible(False)
 
 
 class ExternalNode(gpi.NodeAPI):
@@ -137,10 +172,12 @@ class ExternalNode(gpi.NodeAPI):
             system = input['system']
 
             current_events, current_event_names = [], []
-            for currentEvent in range(6):
-                event_dict = self.getVal('Event ' + str(currentEvent + 1))
+            for current_event in range(6):
+                event_dict = self.getVal('Event ' + str(current_event + 1))
                 event_name = event_dict['event'] if 'event' in event_dict else None
                 event_values = event_dict['data'] if 'data' in event_dict else None
+                # path variable is only for arbitrary gradients
+                path = event_dict['file'] if 'file' in event_dict else None
 
                 if event_name == 'Delay':
                     current_events.append(makedelay(float(event_values[0])))
@@ -175,6 +212,24 @@ class ExternalNode(gpi.NodeAPI):
                     current_events.append(maketrapezoid(**kwargs_for_trap))
                 elif event_name == 'GyPre':
                     pass
+                elif event_name == 'ArbGrad':
+                    channel = event_values[0]
+                    max_grad, max_slew = [float(event_values[x]) for x in range(1, 3)]
+                    file = h5py.File(gpi.TranslateFileURI(path), "r")
+                    self.dataset = str()
+
+                    def append_if_dataset(name, obj):
+                        if isinstance(obj, h5py.Dataset):
+                            self.dataset = name
+                            return True
+
+                    file.visititems(append_if_dataset)
+
+                    waveform = file[self.dataset].value
+                    kwargs_for_arb_grad = {"channel": channel, "waveform": waveform, "max_grad": max_grad,
+                                           "max_slew": max_slew, "system": system}
+                    arb_grad = makearbitrarygrad(**kwargs_for_arb_grad)
+                    current_events.append(arb_grad)
                 elif event_name == 'ADC':
                     num_samples, dwell, duration, delay, freq_offset, phase_offset = [float(event_values[x]) for x in
                                                                                       range(6)]
@@ -198,11 +253,11 @@ class ExternalNode(gpi.NodeAPI):
 
             # To display the computed info inside the node
             info_text = ""
-            for currentEvent in current_events:
-                attrs = [attr for attr in dir(currentEvent) if not callable(attr) and not attr.startswith('__')]
+            for current_event in current_events:
+                attrs = [attr for attr in dir(current_event) if not callable(attr) and not attr.startswith('__')]
                 text = ""
                 for attr in attrs:
-                    text += attr + ": " + str(getattr(currentEvent, attr)) + "\n"
+                    text += attr + ": " + str(getattr(current_event, attr)) + "\n"
                 info_text += text + "~~~\n"
             self.setAttr('EventInfo', val=info_text)
 

@@ -23,7 +23,7 @@ class EventLibrary:
         except ValueError:
             range_len = 0
         for i in range(1, range_len + 1):
-            if (self.lengths[i]) == max(new_data.shape) and np.linalg.norm((self.data[i] - new_data), ord=2) < 1e-6:
+            if self.lengths[i] == max(new_data.shape) and np.linalg.norm((self.data[i] - new_data), ord=2) < 1e-6:
                 key_id, found = self.keys[i], True
                 return [key_id, found]
 

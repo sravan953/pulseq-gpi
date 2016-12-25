@@ -8,10 +8,10 @@ def maketrapezoid(**kwargs):
     channel = kwargs.get("channel", "z")
     system = kwargs.get("system", Opts())
     duration_result = kwargs.get("duration", 0)
-    area_result = kwargs.get("area", 0)
+    area_result = kwargs.get("area", -1)
     flat_time_result = kwargs.get("flat_time", 0)
-    flat_area_result = kwargs.get("flat_area", 0)
-    amplitude_result = kwargs.get("amplitude", 0)
+    flat_area_result = kwargs.get("flat_area", -1)
+    amplitude_result = kwargs.get("amplitude", -1)
     max_grad = kwargs.get("max_grad", 0)
     max_slew = kwargs.get("max_slew", 0)
     rise_time = kwargs.get("rise_time", 0)
@@ -20,14 +20,17 @@ def maketrapezoid(**kwargs):
     max_slew = max_slew if max_slew > 0 else system.max_slew
     rise_time = rise_time if rise_time > 0 else system.rise_time
 
+    if area_result == -1 and flat_area_result == -1 and amplitude_result == -1:
+        raise ValueError('Must supply either ''area'', ''flatArea'' or ''amplitude''')
+
     if flat_time_result > 0:
-        amplitude = amplitude_result if (amplitude_result != 0) else (flat_area_result / flat_time_result)
+        amplitude = amplitude_result if (amplitude_result != -1) else (flat_area_result / flat_time_result)
         if rise_time == 0:
             rise_time = abs(amplitude) / max_slew
             rise_time = ceil(rise_time / system.grad_raster_time) * system.grad_raster_time
         fall_time, flat_time = rise_time, flat_time_result
     elif duration_result > 0:
-        if amplitude_result != 0:
+        if amplitude_result != -1:
             amplitude = amplitude_result
         else:
             if rise_time == 0:
@@ -44,7 +47,10 @@ def maketrapezoid(**kwargs):
         fall_time = rise_time
         flat_time = (duration_result - rise_time - fall_time)
 
-        amplitude = area_result / (rise_time / 2 + fall_time / 2 + flat_time) if amplitude_result == 0 else amplitude
+        amplitude = area_result / (rise_time / 2 + fall_time / 2 + flat_time) if amplitude_result == -1 else amplitude
+
+    if abs(amplitude) > max_grad:
+        raise ValueError('Amplitude violation')
 
     grad = Holder()
     grad.type = 'trap'

@@ -47,21 +47,21 @@ def setblock(self, block_index, *args):
             duration = max(duration, max(mag.shape) * self.rf_raster_time + event.dead_time)
         elif event.type == 'grad':
             channel_num = ['x', 'y', 'z'].index(event.channel)
-            amplitude = max(abs(event.waveform))
+            amplitude = max(abs(event.waveform[0]))
             g = event.waveform / amplitude
             shape = compress_shape(g)
             data = np.array([[shape.num_samples]])
             data = np.append(data, shape.data, axis=1)
             shape_id, found = self.shape_library.find(data)
             if not found:
-                self.shape_library.insert(shape_id, data)
+                self.shape_library.insert(shape_id, data, None)
             data = np.array([amplitude, shape_id])
             index, found = self.grad_library.find(data)
             if not found:
                 self.grad_library.insert(index, data, 'g')
             idx = 2 + channel_num
-            self.blockEvents[block_index][idx] = index
-            duration = max(duration, max() * self.grad_raster_time)
+            self.block_events[block_index][idx] = index
+            duration = max(duration, len(g[0]) * self.grad_raster_time)
         elif event.type == 'trap':
             channel_num = ['x', 'y', 'z'].index(event.channel)
             data = np.array([event.amplitude, event.rise_time, event.flat_time, event.fall_time])
@@ -110,7 +110,7 @@ def getblock(self, block_index):
         mag = decompress_shape(compressed)
         shape_data = self.shape_library.data[phase_shape]
         compressed.num_samples = shape_data[0][0]
-        compressed.data = shape_data[0][1:shape_data.shape[1]]
+        compressed.data = shape_data[0][1:]
         compressed.data = compressed.data.reshape((1, compressed.data.shape[0]))
         phase = decompress_shape(compressed)
         rf.signal = 1j * 2 * np.pi * phase
@@ -136,11 +136,11 @@ def getblock(self, block_index):
                 amplitude = lib_data[0]
                 shape_id = lib_data[1]
                 shape_data = self.shape_library.data[shape_id]
-                compressed.num_samples = shape_data[0]
-                compressed.data = shape_data[0][1:shape_data.shape[1]]
+                compressed.num_samples = shape_data[0][0]
+                compressed.data = np.array([shape_data[0][1:]])
                 g = decompress_shape(compressed)
                 grad.waveform = amplitude * g
-                grad.t = np.array(([x for x in range(1, max(g.shape))] * self.grad_raster_time))
+                grad.t = np.array([[x * self.grad_raster_time for x in range(1, g.size + 1)]])
             else:
                 grad.amplitude, grad.rise_time, grad.flat_time, grad.fall_time = [lib_data[x] for x in range(4)]
                 grad.area = grad.amplitude * (grad.flat_time + grad.rise_time / 2 + grad.fall_time / 2)
@@ -153,7 +153,7 @@ def getblock(self, block_index):
             lib_data = np.append(lib_data, 0)
         adc = Holder()
         adc.num_samples, adc.dwell, adc.delay, adc.freq_offset, adc.phase_offset, adc.dead_time = [lib_data[x] for x in
-                                                                                               range(6)]
+                                                                                                   range(6)]
         adc.type = 'adc'
         block['adc'] = adc
     return block

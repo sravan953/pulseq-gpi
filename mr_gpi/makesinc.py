@@ -39,6 +39,9 @@ def makesincpulse(**kwargs):
     rf.phase_offset = phase_offset
     rf.dead_time = system.rf_dead_time
 
+    if slice_thickness < 0:
+        raise ValueError('Slice Thickness must be provided')
+
     system.max_grad = max_grad if max_grad > 0 else system.max_grad
     system.max_slew = max_slew if max_slew > 0 else system.max_slew
 
