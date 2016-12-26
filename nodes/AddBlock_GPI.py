@@ -83,6 +83,7 @@ class AddBlockWidgets(gpi.GenericWidgetGroup):
             self.file_browser.set_val(val['file'] if 'file' in val else '')
 
     def button_clicked(self):
+        """Identifies the button that was clicked and stores the name and ID of the button."""
         for button in self.buttons_list:
             if button.isChecked():
                 self.clicked_button_index = self.buttons_list.index(button)
@@ -90,6 +91,7 @@ class AddBlockWidgets(gpi.GenericWidgetGroup):
         self.show_text_edits(self.clicked_button_index)
 
     def show_text_edits(self, index):
+        """Depending on the button that was clicked, show the appropriate number of TextEdits."""
         self.hide_text_edits()
         self.hide_file_browser()
 
@@ -129,10 +131,12 @@ class AddBlockWidgets(gpi.GenericWidgetGroup):
             [self.text_edit_list[x].set_placeholder(adc_labels[x]) for x in range(len(adc_labels))]
 
     def hide_text_edits(self):
+        """Hide all TextEdits."""
         [x.set_visible(False) for x in self.text_edit_list]
         [x.set_val("") for x in self.text_edit_list]
 
     def hide_file_browser(self):
+        """Hide the FileBrowser."""
         self.file_browser.set_visible(False)
 
 

@@ -122,7 +122,7 @@ def skip_comments(input_file):
 
 
 def strip_line(input_file):
-    # Remove spaces and newline whitespace
+    """Remove spaces, newline whitespace and return line."""
     line = input_file.readline()
     line = line.strip()
     line = line.split(' ')

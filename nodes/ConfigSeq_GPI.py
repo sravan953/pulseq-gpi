@@ -70,6 +70,7 @@ class ExternalNode(gpi.NodeAPI):
         return 0
 
     def compute_gypre(self, fov, Ny, system):
+        """Compute Gy-Prephase values."""
         deltak = 1 / fov
         phase_areas = np.array(([x for x in range(0, Ny)]))
         phase_areas = (phase_areas - Ny / 2) * deltak
