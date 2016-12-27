@@ -35,7 +35,6 @@ def read(self, path):
 
 
 def read_blocks(input_file):
-    # inputFile.readline()
     line = strip_line(input_file)
     for x in range(len(line)):
         line[x] = float(line[x])
@@ -60,11 +59,11 @@ def read_blocks(input_file):
     return block_events
 
 
-def read_events(inputFile, scale, type, event_lib):
+def read_events(input_file, scale, type, event_lib):
     scale = 1 if scale is None else scale
     event_library = event_lib if event_lib is not None else EventLibrary()
 
-    line = strip_line(inputFile)
+    line = strip_line(input_file)
     for x in range(len(line)):
         line[x] = float(line[x])
 
@@ -73,7 +72,7 @@ def read_events(inputFile, scale, type, event_lib):
         data = np.multiply(line[1:], scale)
         event_library.insert(event_id, data, type)
 
-        line = strip_line(inputFile)
+        line = strip_line(input_file)
         if not line:
             break
 

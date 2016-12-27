@@ -26,24 +26,27 @@ class ExternalNode(gpi.NodeAPI):
 
     def compute(self):
         in_dict = self.getData('input')
-        system = in_dict['system']
-        self.seq = Sequence(system)
-        gy_pre, Ny = in_dict['gy_pre'], system.Ny
+        if 'system' in in_dict:
+            system = in_dict['system']
+            self.seq = Sequence(system)
+            gy_pre, Ny = in_dict['gy_pre'], system.Ny
 
-        events, event_names = in_dict['events'], in_dict['event_names']
-        for i in range(Ny):
-            for j in range(len(events)):
-                block_row, block_names = events[j], event_names[j]
-                if 'GyPre' in block_names:
-                    gy_index = block_names.index('GyPre')
-                    # GyPre has to be inserted only on the first iteration.
-                    # In subsequent iterations, the inserted GyPre value is simply replaced.
-                    if i == 0:
-                        block_row.insert(gy_index, gy_pre[i])
-                    else:
-                        block_row[gy_index] = gy_pre[i]
-                self.seq.addblock(*block_row)
-            in_dict['seq'] = self.seq
+            events, event_names = in_dict['events'], in_dict['event_names']
+            for i in range(Ny):
+                for j in range(len(events)):
+                    block_row, block_names = events[j], event_names[j]
+                    if 'GyPre' in block_names:
+                        gy_index = block_names.index('GyPre')
+                        # GyPre has to be inserted only on the first iteration.
+                        # In subsequent iterations, the inserted GyPre value is simply replaced.
+                        if i == 0:
+                            block_row.insert(gy_index, gy_pre[i])
+                        else:
+                            block_row[gy_index] = gy_pre[i]
+                    self.seq.addblock(*block_row)
+                in_dict['seq'] = self.seq
+        else:
+            self.seq = in_dict['sequence']
 
         self.setData('output', in_dict)
         self.setPlotOutputs()

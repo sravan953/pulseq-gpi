@@ -10,8 +10,8 @@ class ExternalNode(gpi.NodeAPI):
         self.addInPort(title='input', type='DICT')
 
         # Widgets
-        self.addWidget('SaveFileBrowser', 'File location', button_title='Save .seq file at')
-        self.addWidget('PushButton', 'Write seq file', button_title='Write')
+        self.addWidget('SaveFileBrowser', 'File location', button_title='Browse')
+        self.addWidget('PushButton', 'Write seq file', button_title='Save now')
         return 0
 
     def compute(self):

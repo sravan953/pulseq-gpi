@@ -13,7 +13,7 @@ class ExternalNode(gpi.NodeAPI):
         self.addOutPort(title='output', type='DICT')
 
         # Widgets
-        self.addWidget('OpenFileBrowser', 'File location', button_title='Read .seq file from')
+        self.addWidget('OpenFileBrowser', 'File location', button_title='Browse')
         return 0
 
     def compute(self):
