@@ -21,7 +21,7 @@ def makeadc(**kwargs):
     adc.dead_time = system.adc_dead_time
 
     if (dwell == 0 and duration == 0) or (dwell > 0 and duration > 0):
-        raise Exception("either dwell or duration must be defined")
+        raise Exception("either dwell (s) or duration (s) must be defined")
 
     adc.dwell = duration / num_samples if duration > 0 else adc.dwell
     adc.duration = dwell * num_samples if dwell > 0 else 0

@@ -26,7 +26,7 @@ class ExternalNode(gpi.NodeAPI):
         self.addWidget('StringBox', 'ADC Dead Time (s)', placeholder="adcDeadTime")
         self.addWidget('StringBox', 'RF Raster Time (s)', placeholder="rfRaster")
         self.addWidget('StringBox', 'Gradient Raster Time (s)', placeholder="gradRaster")
-        self.addWidget('TextBox', 'EventInfo')
+        self.addWidget('TextBox', 'System limits')
 
         # IO Ports
         self.addOutPort('output', 'DICT')
@@ -34,8 +34,8 @@ class ExternalNode(gpi.NodeAPI):
         return 0
 
     def compute(self):
-        data = {}
         try:
+            out_dict = {}
             max_grad = float(self.getVal('Maximum Gradient (mT/m)'))
             max_slew = float(self.getVal('Maximum Slew Rate (T/m/s)'))
             te = float(self.getVal('Repetition Time (s)'))
@@ -57,23 +57,29 @@ class ExternalNode(gpi.NodeAPI):
                                "rf_raster_time": rf_raster_time,
                                "grad_raster_time": grad_raster_time}
             system = Opts(**kwargs_for_opts)
-            data['system'] = system
-            data['gy_pre'] = self.compute_gypre(fov, Ny, system)
-            self.setData('output', data)
+
+            """
+            out_dict contains:
+            - system: Opts - System limits
+            - gy_pre: list - All phase encode values
+            """
+            out_dict['system'] = system
+            out_dict['gy_pre'] = self.compute_gypre(fov, Ny, system)
+
+            self.setData('output', out_dict)
 
             # To display the computed info inside the node
-            self.setAttr('EventInfo', val=str(system))
-        except ValueError as e:
-            self.log.node('Please make sure you have input valid data:')
-            self.log.node(e)
+            self.setAttr('System limits', val=str(system))
+        except ValueError:
+            pass
 
         return 0
 
     def compute_gypre(self, fov, Ny, system):
-        """Compute Gy-Prephase values."""
-        deltak = 1 / fov
+        """Compute all phase encode (Gy-Prephase) values."""
+        delta_k = 1 / fov
         phase_areas = np.array(([x for x in range(0, Ny)]))
-        phase_areas = (phase_areas - Ny / 2) * deltak
+        phase_areas = (phase_areas - Ny / 2) * delta_k
         gy_pre_list = []
         for i in range(Ny):
             kwargs_for_gy_pre = {"channel": 'y', "system": system, "area": phase_areas[i], "duration": 2e-3}

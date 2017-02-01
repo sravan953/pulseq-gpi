@@ -1,12 +1,7 @@
-import gpi
-import h5py
-from gpi import QtGui
+from collections import OrderedDict
 
-from mr_gpi.makeadc import makeadc
-from mr_gpi.makearbitrary_grad import makearbitrarygrad
-from mr_gpi.makedelay import makedelay
-from mr_gpi.makesinc import makesincpulse
-from mr_gpi.maketrap import maketrapezoid
+import gpi
+from gpi import QtGui
 
 
 class AddBlockWidgets(gpi.GenericWidgetGroup):
@@ -18,13 +13,51 @@ class AddBlockWidgets(gpi.GenericWidgetGroup):
 
     def __init__(self, title, parent=None):
         super(AddBlockWidgets, self).__init__(title, parent)
-        self.button_names_list = ['Off', 'Delay', 'Rf', 'Gx', 'G', 'GyPre', 'ArbGrad', 'ADC']
+        self.button_names_list = ['Off', 'Delay', 'Rf', 'G', 'GyPre', 'ArbGrad', 'ADC']
         self.clicked_button_name, self.clicked_button_index = '', 0
-        self.buttons_list, self.text_edit_list = [], []
-        col_count = 0
-        wdg_layout = QtGui.QGridLayout()
+        self.buttons_list, self.string_box_list = [], []
+        self.wdg_layout = QtGui.QGridLayout()
 
-        # Adding PushButtons
+        self.add_event_pushbuttons()
+        self.add_config_stringboxes()
+        self.add_include_in_loop_pushbutton()
+        self.add_include_gz_pushbutton()
+        self.add_file_browser()
+
+        self.setLayout(self.wdg_layout)
+        self.buttons_list[0].setChecked(True)
+
+        # Labels for StringBoxes for configuring Events
+        self.delay_labels = ['Unique Event name', 'Delay (s)']
+        self.sinc_labels = ['Unique Event name', 'Maximum Gradient (mT/m)', 'Maximum Slew (T/m/s)', 'Duration (s)',
+                            'Frequency Offset', 'Phase Offset', 'Time Bw Product', 'Apodization', 'Slice Thickness (m)']
+        self.trap_labels = ['Unique Event name', 'Channel', 'Duration (s)', 'Area', 'Flat Time (s)', 'Flat Area',
+                            'Amplitude (Hz)', 'Rise Time (s)']
+        self.arb_grad_labels = ['Unique Event name', 'Channel', 'Maximum Gradient (mT/m)', 'Maximum Slew (T/m/s)']
+        self.adc_labels = ['Unique Event name', 'Number of samples', 'Dwell (s)', 'Duration (s)', 'Delay (s)',
+                           'Frequency Offset', 'Phase Offset']
+        # Placeholders for StringBoxes for configuring Events
+        self.delay_placeholders = ['event_unique_name', 'delay']
+        self.sinc_placeholders = ['event_unique_name', 'max_grad', 'max_slew', 'duration', 'freq_offset',
+                                  'phase_offset',
+                                  'time_bw_prod', 'apodization', 'slice_thickness']
+        self.trap_placeholders = ['event_unique_name', 'channel', 'duration', 'area', 'flat_time', 'flat_area',
+                                  'amplitude',
+                                  'rise_time']
+        self.arb_grad_placeholders = ['event_unique_name', 'channel', 'max_grad', 'max_slew']
+        self.adc_placeholders = ['event_unique_name', 'num_samples', 'dwell', 'duration', 'delay', 'freq_offset',
+                                 'phase_offset']
+
+        # First index is None because the first button is 'Off'. Look into event_def['event_values'] in get_val()
+        # Fourth index is also None because of GyPre - no config
+        self.labels = [None, self.delay_labels, self.sinc_labels, self.trap_labels, None, self.arb_grad_labels,
+                       self.adc_labels]
+        self.placeholders = [None, self.delay_placeholders, self.sinc_placeholders, self.trap_placeholders, None,
+                             self.arb_grad_placeholders, self.adc_placeholders]
+
+    def add_event_pushbuttons(self):
+        """Adding PushButtons for the Events."""
+        col_count = 0
         for name in self.button_names_list:
             new_button = QtGui.QPushButton(name)
             new_button.setCheckable(True)
@@ -32,55 +65,101 @@ class AddBlockWidgets(gpi.GenericWidgetGroup):
             new_button.clicked.connect(self.button_clicked)
             new_button.clicked.connect(self.valueChanged)
             # Syntax: addWidget(widget, row, col, rowSpan, colSpan)
-            wdg_layout.addWidget(new_button, 0, col_count, 1, 1)
+            self.wdg_layout.addWidget(new_button, 0, col_count, 1, 1)
             self.buttons_list.append(new_button)
             col_count += 1
 
-        # Adding TextEdits
-        for x in range(len(self.button_names_list)):
-            self.text_edit = gpi.StringBox(str(x))
-            self.text_edit.set_visible(False)
+    def add_config_stringboxes(self):
+        """Adding StringBoxes for configuring the Events."""
+        for x in range(9):
+            string_box = gpi.StringBox(str(x))
+            string_box.set_visible(False)
             # Syntax: addWidget(widget, row, col, rowSpan, colSpan)
-            wdg_layout.addWidget(self.text_edit, x + 1, 1, 1, 6)
-            self.text_edit_list.append(self.text_edit)
+            self.wdg_layout.addWidget(string_box, x + 1, 1, 1, 6)
+            self.string_box_list.append(string_box)
 
-        # Adding FileBrowser
+    def add_include_in_loop_pushbutton(self):
+        """Adding PushButton to toggle Event being included/excluded in loop."""
+        self.include_in_loop_pushbutton = QtGui.QPushButton('Add event in loop')
+        self.include_in_loop_pushbutton.setCheckable(True)
+        self.include_in_loop_pushbutton.setChecked(True)
+        self.include_in_loop_pushbutton.setVisible(False)
+        self.include_in_loop_pushbutton.clicked.connect(self.button_clicked)
+        self.include_in_loop_pushbutton.clicked.connect(self.valueChanged)
+        # Syntax: addWidget(widget, row, col, rowSpan, colSpan)
+        self.wdg_layout.addWidget(self.include_in_loop_pushbutton, 10, 1, 1, 6)
+
+    def add_include_gz_pushbutton(self):
+        """Adding PushButton toggle for Gz along with Rf."""
+        self.include_gz_pushbutton = QtGui.QPushButton('Add Gz event with Rf')
+        self.include_gz_pushbutton.setCheckable(True)
+        self.include_gz_pushbutton.setVisible(False)
+        self.include_gz_pushbutton.clicked.connect(self.button_clicked)
+        self.include_gz_pushbutton.clicked.connect(self.valueChanged)
+        # Syntax: addWidget(widget, row, col, rowSpan, colSpan)
+        self.wdg_layout.addWidget(self.include_gz_pushbutton, 11, 1, 1, 6)
+
+    def add_file_browser(self):
+        """Adding FileBrowser necessary for ArbGrad Event."""
         self.file_browser = gpi.OpenFileBrowser('Read .hdf5')
         self.file_browser.set_button_title('Read .hdf5')
         self.file_browser.set_visible(False)
-        wdg_layout.addWidget(self.file_browser, len(self.button_names_list) + 1, 1, 1, 4)
+        # Syntax: addWidget(widget, row, col, rowSpan, colSpan)
+        self.wdg_layout.addWidget(self.file_browser, 5, 1, 1, 6)
 
-        self.setLayout(wdg_layout)
-        self.buttons_list[0].setChecked(True)
-
+    # Getter
     def get_val(self):
         if self.clicked_button_index == 0:
+            # 'Off' PushButton selected, return empty dict
             return {}
+        elif self.clicked_button_index == 4:
+            # Phase encode, GyPre
+            return {'event_name': 'GyPre', 'event_unique_name': 'gyPre', 'event_values': None, 'include_in_loop': True}
         else:
-            if self.clicked_button_index == 5:
-                # Return 'gy_pre' because values are pre-computed in ConfigSeq_GPI Node
-                return {'event': 'GyPre'}
+            """
+            event_def contains:
+            - event_name: str - Event name, corresponds to Event button that is selected
+            - event_unique_name: str - Unique Event name; user input
+            - event_values: OrderedDict - key-value pairs of Event parameters and values
+            - include_in_loop: bool - If Event should be added to Sequence Ny times
+            - include_gz: bool - If Gz Event should be added to Sequence with Rf Event
+            - file_path: str - Path to .hdf5 file required for arbitrary gradient Event
+            """
+            event_def = {}
+            event_def['event_name'] = self.clicked_button_name
+            event_def['event_unique_name'] = self.string_box_list[0].get_val()
+            event_def['event_values'] = OrderedDict(
+                zip(self.placeholders[self.clicked_button_index][1:], [x.get_val() for x in self.string_box_list[1:]]))
+            event_def['include_in_loop'] = self.include_in_loop_pushbutton.isChecked()
+            if self.clicked_button_index == 2:
+                # For Rf event, check if Gz has to be included
+                event_def['include_gz'] = self.include_gz_pushbutton.isChecked()
             elif self.clicked_button_index == 6:
-                values = {'event': self.clicked_button_name, 'data': [x.get_val() for x in self.text_edit_list],
-                          'file': self.file_browser.get_val()}
-                return values
-            else:
-                values = {'event': self.clicked_button_name, 'data': [x.get_val() for x in self.text_edit_list]}
-                return values
+                event_def['file_path'] = self.file_browser.get_val()
+            return event_def
 
+    # Setter
     def set_val(self, val):
-        if len(val) == 0:
-            self.hide_text_edits()
-            self.hide_file_browser()
-        else:
-            self.clicked_button_name = val['event']
+        self.hide_config_widgets()
+        if len(val) != 0:
+            event_unique_name = val['event_unique_name']
+            event_values = val['event_values']
+            self.clicked_button_name = val['event_name']
             self.clicked_button_index = self.button_names_list.index(self.clicked_button_name)
             self.buttons_list[self.clicked_button_index].setChecked(True)
-            self.show_text_edits(self.clicked_button_index)
-            data = val['data']
-            for x in range(len(self.button_names_list)):
-                self.text_edit_list[x].set_val(data[x])
-            self.file_browser.set_val(val['file'] if 'file' in val else '')
+            self.show_config_widgets()
+            self.include_in_loop_pushbutton.setChecked(bool(val['include_in_loop']))
+            if 'include_gz' in val:
+                self.include_gz_pushbutton.setChecked(val['include_gz'])
+            labels = self.labels[self.clicked_button_index]
+            placeholders = self.placeholders[self.clicked_button_index]
+            self.string_box_list[0].setTitle('Unique Event Name')
+            self.string_box_list[0].set_placeholder('event_unique_name')
+            self.string_box_list[0].set_val(event_unique_name)
+            for x in range(1, len(placeholders)):
+                self.string_box_list[x].setTitle(labels[x])
+                self.string_box_list[x].set_placeholder(placeholders[x])
+                self.string_box_list[x].set_val(event_values[placeholders[x]])
 
     def button_clicked(self):
         """Identifies the button that was clicked and stores the name and ID of the button."""
@@ -88,77 +167,82 @@ class AddBlockWidgets(gpi.GenericWidgetGroup):
             if button.isChecked():
                 self.clicked_button_index = self.buttons_list.index(button)
                 self.clicked_button_name = self.button_names_list[self.clicked_button_index]
-        self.show_text_edits(self.clicked_button_index)
+        self.show_config_widgets()
 
-    def show_text_edits(self, index):
-        """Depending on the button that was clicked, show the appropriate number of TextEdits."""
-        self.hide_text_edits()
-        self.hide_file_browser()
+    def show_config_widgets(self):
+        """Show appropriate number of StringBoxes and relevant Widgets based on the button that was clicked."""
+        self.hide_config_widgets()
 
-        if index == 1:
+        if self.clicked_button_index != 0 and self.clicked_button_index != 4:
+            self.include_in_loop_pushbutton.setVisible(True)
+        if self.clicked_button_index == 1:
             # Delay
-            delay_label = 'Delay (s)'
-            self.text_edit_list[0].set_visible(True)
-            self.text_edit_list[0].set_placeholder(delay_label)
-        elif index == 2:
+            [self.string_box_list[x].set_visible(True) for x in range(len(self.delay_placeholders))]
+            [self.string_box_list[x].setTitle(self.delay_labels[x]) for x in range(len(self.delay_labels))]
+            [self.string_box_list[x].set_placeholder(self.delay_placeholders[x]) for x in
+             range(len(self.delay_placeholders))]
+        elif self.clicked_button_index == 2:
             # RF
-            sinc_labels = ['Duration (s)', 'Frequency Offset', 'Phase Offset', 'Time Bw Product', 'Apodization',
-                           'Slice Thickness (m)']
-            [self.text_edit_list[x].set_visible(True) for x in range(len(sinc_labels))]
-            [self.text_edit_list[x].set_placeholder(sinc_labels[x]) for x in range(len(sinc_labels))]
-        elif index == 3:
-            # Gx
-            trap_label = 'Flat Time (s)'
-            self.text_edit_list[0].set_visible(True)
-            self.text_edit_list[0].set_placeholder(trap_label)
-        elif index == 4:
+            [self.string_box_list[x].set_visible(True) for x in range(len(self.sinc_placeholders))]
+            [self.string_box_list[x].setTitle(self.sinc_labels[x]) for x in range(len(self.sinc_labels))]
+            [self.string_box_list[x].set_placeholder(self.sinc_placeholders[x]) for x in
+             range(len(self.sinc_placeholders))]
+            self.include_gz_pushbutton.setVisible(True)
+        elif self.clicked_button_index == 3:
             # G
-            trap_labels = ['Channel', 'Duration (s)', 'Area', 'Flat Time (s)', 'Flat Area', 'Amplitude (Hz)',
-                           'Rise Time (s)']
-            [self.text_edit_list[x].set_visible(True) for x in range(len(trap_labels))]
-            [self.text_edit_list[x].set_placeholder(trap_labels[x]) for x in range(len(trap_labels))]
-        elif index == 6:
+            [self.string_box_list[x].set_visible(True) for x in range(len(self.trap_placeholders))]
+            [self.string_box_list[x].setTitle(self.trap_labels[x]) for x in range(len(self.trap_labels))]
+            [self.string_box_list[x].set_placeholder(self.trap_placeholders[x]) for x in
+             range(len(self.trap_placeholders))]
+        elif self.clicked_button_index == 5:
             # Arbitrary Grad
-            arb_grad_labels = ['Channel', 'Maximum Gradient', 'Maximum Slew']
-            [self.text_edit_list[x].set_visible(True) for x in range(len(arb_grad_labels))]
-            [self.text_edit_list[x].set_placeholder(arb_grad_labels[x]) for x in range(len(arb_grad_labels))]
+            [self.string_box_list[x].set_visible(True) for x in range(len(self.arb_grad_placeholders))]
+            [self.string_box_list[x].setTitle(self.arb_grad_labels[x]) for x in range(len(self.arb_grad_labels))]
+            [self.string_box_list[x].set_placeholder(self.arb_grad_placeholders[x]) for x in
+             range(len(self.arb_grad_placeholders))]
             self.file_browser.set_visible(True)
-        elif index == 7:
+        elif self.clicked_button_index == 6:
             # ADC
-            adc_labels = ['Number of samples', 'Dwell (s)', 'Duration (s)', 'Delay (s)', 'Frequency Offset',
-                          'Phase Offset']
-            [self.text_edit_list[x].set_visible(True) for x in range(len(adc_labels))]
-            [self.text_edit_list[x].set_placeholder(adc_labels[x]) for x in range(len(adc_labels))]
+            [self.string_box_list[x].set_visible(True) for x in range(len(self.adc_placeholders))]
+            [self.string_box_list[x].setTitle(self.adc_labels[x]) for x in range(len(self.adc_labels))]
+            [self.string_box_list[x].set_placeholder(self.adc_placeholders[x]) for x in
+             range(len(self.adc_placeholders))]
 
-    def hide_text_edits(self):
-        """Hide all TextEdits."""
-        [x.set_visible(False) for x in self.text_edit_list]
-        [x.set_val("") for x in self.text_edit_list]
-
-    def hide_file_browser(self):
-        """Hide the FileBrowser."""
+    def hide_config_widgets(self):
+        """Hide all Widgets."""
+        [x.set_visible(False) for x in self.string_box_list]
+        [x.set_val("") for x in self.string_box_list]
+        self.include_in_loop_pushbutton.setVisible(False)
+        self.include_gz_pushbutton.setVisible(False)
         self.file_browser.set_visible(False)
 
 
 class ExternalNode(gpi.NodeAPI):
-    """This node providers options for setting up the event that needs to be added. Event parameters should be set to 0
+    """
+    This node providers options for setting up the event that needs to be added. Event parameters should be set to 0
     if left unconfigured. Up to 6 simultaneous events can be added in one block. The 'ComputeEvents' button gathers the
     input data and constructs the block elements. The output of this node (or a chain of AddBlock nodes) has to be
     supplied to a GenSeq node.
 
      Units:
-     - duration/flatTime/riseTime/dwell/delay (s)
+     - duration (s)
+     - flatTime (s)
+     - riseTime (s)
+     - dwell (s)
+     - delay (s)
      - sliceThickness (m)
      - amplitude (Hz)
     """
 
     def initUI(self):
+        # Init constant(s)
+        self.num_concurrent_events = 6
+
         # Widgets
         self.addWidget('StringBox', 'Unique Node Name')
-        for x in range(6):
+        for x in range(self.num_concurrent_events):
             self.addWidget('AddBlockWidgets', 'Event ' + str(x + 1))
-        self.addWidget('PushButton', 'ComputeEvents')
-        self.addWidget('TextBox', 'EventInfo')
+        self.addWidget('PushButton', 'ComputeEvents', button_title="Compute events")
 
         # IO Ports
         self.addInPort('input', 'DICT')
@@ -167,102 +251,27 @@ class ExternalNode(gpi.NodeAPI):
         return 0
 
     def validate(self):
-        if 'ComputeEvents' in self.widgetEvents() or self.portEvents():
-            self.setDetailLabel(self.getVal('Unique Node Name'))
+        if 'ComputeEvents' in self.widgetEvents() or 'input' in self.portEvents():
+            self.unique_node_name = self.getVal('Unique Node Name')
+            self.setDetailLabel(self.unique_node_name)
 
     def compute(self):
-        if 'ComputeEvents' in self.widgetEvents() or self.portEvents():
-            input = self.getData('input')
-            system = input['system']
+        if 'ComputeEvents' in self.widgetEvents() or 'input' in self.portEvents():
+            in_dict = self.getData('input')
+            all_event_def = in_dict['all_event_def'] if 'all_event_def' in in_dict else []
+            all_event_ordered = in_dict['all_event_ordered'] if 'all_event_ordered' in in_dict else OrderedDict()
+            ordered_events = []
 
-            current_events, current_event_names = [], []
-            for current_event in range(6):
-                event_dict = self.getVal('Event ' + str(current_event + 1))
-                event_name = event_dict['event'] if 'event' in event_dict else None
-                event_values = event_dict['data'] if 'data' in event_dict else None
-                # path variable is only for arbitrary gradients
-                path = event_dict['file'] if 'file' in event_dict else None
+            for x in range(self.num_concurrent_events):
+                event_def = self.getVal('Event ' + str(x + 1))
+                if len(event_def) != 0:
+                    all_event_def.append(event_def)
+                    ordered_events.append(event_def['event_unique_name'])
 
-                if event_name == 'Delay':
-                    current_events.append(makedelay(float(event_values[0])))
-                elif event_name == 'Rf':
-                    duration, freq_offset, phase_offset, time_bw_product, apodization, slice_thickness = [
-                        float(event_values[x]) for x in range(6)]
-                    kwargs_for_sinc = {"flip_angle": system.flip, "system": system, "duration": duration,
-                                       "freq_offset": freq_offset, "phase_offset": phase_offset,
-                                       "time_bw_product": time_bw_product,
-                                       "apodization": apodization, "max_grad": system.max_grad,
-                                       "max_slew": system.max_slew,
-                                       "slice_thickness": slice_thickness}
-                    rf, gz = makesincpulse(**kwargs_for_sinc)
-                    current_events.append(rf)
-                    current_events.append(gz)
-                elif event_name == 'Gx':
-                    flat_time = float(event_values[0])
-                    channel = 'x'
-                    duration, area, amplitude, rise_time = [0] * 4
-                    flat_area = system.Nx * (1 / system.fov)
-                    kwargs_for_trap = {"channel": channel, "system": system, "duration": duration, "area": area,
-                                       "flat_time": flat_time, "flat_area": flat_area, "amplitude": amplitude,
-                                       "max_grad": system.max_grad, "max_slew": system.max_slew, "rise_time": rise_time}
-                    current_events.append(maketrapezoid(**kwargs_for_trap))
-                elif event_name == 'G':
-                    channel = event_values[0]
-                    duration, area, flat_time, flat_area, amplitude, rise_time = [float(event_values[x]) for x in
-                                                                                  range(1, 7)]
-                    kwargs_for_trap = {"channel": channel, "system": system, "duration": duration, "area": area,
-                                       "flat_time": flat_time, "flat_area": flat_area, "amplitude": amplitude,
-                                       "max_grad": system.max_grad, "max_slew": system.max_slew, "rise_time": rise_time}
-                    current_events.append(maketrapezoid(**kwargs_for_trap))
-                elif event_name == 'GyPre':
-                    pass
-                elif event_name == 'ArbGrad':
-                    channel = event_values[0]
-                    max_grad, max_slew = [float(event_values[x]) for x in range(1, 3)]
-                    file = h5py.File(gpi.TranslateFileURI(path), "r")
-                    self.dataset = str()
+            all_event_ordered[self.unique_node_name] = ordered_events
 
-                    def append_if_dataset(name, obj):
-                        if isinstance(obj, h5py.Dataset):
-                            self.dataset = name
-                            return True
-
-                    file.visititems(append_if_dataset)
-
-                    waveform = file[self.dataset].value
-                    kwargs_for_arb_grad = {"channel": channel, "waveform": waveform, "max_grad": max_grad,
-                                           "max_slew": max_slew, "system": system}
-                    arb_grad = makearbitrarygrad(**kwargs_for_arb_grad)
-                    current_events.append(arb_grad)
-                elif event_name == 'ADC':
-                    num_samples, dwell, duration, delay, freq_offset, phase_offset = [float(event_values[x]) for x in
-                                                                                      range(6)]
-                    kwargs_for_adc = {"num_samples": num_samples, "system": system, "dwell": dwell,
-                                      "duration": duration, "delay": delay, "freq_offset": freq_offset,
-                                      "phase_offset": phase_offset}
-                    adc = makeadc(**kwargs_for_adc)
-                    current_events.append(adc)
-                if event_name != 'Rf':
-                    current_event_names.append(event_name)
-                else:
-                    current_event_names.append('Rf')
-                    current_event_names.append('Gz')
-
-            all_events = input['events'] if 'events' in input else []
-            all_event_names = input['event_names'] if 'event_names' in input else []
-            all_events.append(current_events)
-            all_event_names.append(current_event_names)
-            input['events'], input['event_names'] = all_events, all_event_names
-            self.setData('output', input)
-
-            # To display the computed info inside the node
-            info_text = ""
-            for current_event in current_events:
-                attrs = [attr for attr in dir(current_event) if not callable(attr) and not attr.startswith('__')]
-                text = ""
-                for attr in attrs:
-                    text += attr + ": " + str(getattr(current_event, attr)) + "\n"
-                info_text += text + "~~~\n"
-            self.setAttr('EventInfo', val=info_text)
+            in_dict['all_event_def'] = all_event_def
+            in_dict['all_event_ordered'] = all_event_ordered
+            self.setData('output', in_dict)
 
         return 0

@@ -8,7 +8,7 @@ from mr_gpi.opts import Opts
 
 # Currently not supported
 
-def makearbitrarygrad(**kwargs):
+def makearbitraryrf(**kwargs):
     flip_angle = kwargs.get("flip_angle")
     system = kwargs.get("system", Opts())
     signal = kwargs.get("signal", 0)

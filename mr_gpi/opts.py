@@ -10,13 +10,15 @@ class Opts:
         self.grad_unit = kwargs.get("grad_unit", valid_grad_units[1])
         self.slew_unit = kwargs.get("slew_unit", valid_slew_units[1])
 
-        # If values are not provided in required units, convert
+        # Convert input values if not provided in standard units
         self.max_grad = mr_gpi.convert.convert(float(self.max_grad), self.grad_unit) if self.grad_unit != \
                                                                                         valid_grad_units[
                                                                                             0] else self.max_grad
+        self.grad_unit = valid_grad_units[0] if self.grad_unit != valid_grad_units[0] else self.grad_unit
         self.max_slew = mr_gpi.convert.convert(float(self.max_slew), self.slew_unit) if self.slew_unit != \
                                                                                         valid_slew_units[
                                                                                             0] else self.max_slew
+        self.slew_unit = valid_slew_units[0] if self.slew_unit != valid_slew_units[0] else self.slew_unit
 
         self.te = kwargs.get("te", 0)
         self.tr = kwargs.get("tr", 0)
@@ -31,7 +33,7 @@ class Opts:
         self.grad_raster_time = kwargs.get("grad_raster_time", 10e-6)
 
     def __str__(self):
-        s = "Opts:"
+        s = "System limits:"
         s += "\nmax_grad: " + str(self.max_grad) + str(self.grad_unit)
         s += "\nmax_slew: " + str(self.max_slew) + str(self.slew_unit)
         s += "\nte: " + str(self.te)

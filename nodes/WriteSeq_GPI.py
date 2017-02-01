@@ -16,8 +16,8 @@ class ExternalNode(gpi.NodeAPI):
 
     def compute(self):
         if 'Write seq file' in self.widgetEvents():
-            inDict = self.getData('input')
-            seq = inDict['seq']
-            fileLocation = self.getVal('File location')
-            fileLocation += '.seq' if '.seq' not in fileLocation else ''
-            seq.write(fileLocation)
+            in_dict = self.getData('input')
+            seq = in_dict['seq']
+            file_location = self.getVal('File location')
+            file_location += '.seq' if '.seq' not in file_location else ''
+            seq.write(file_location)
