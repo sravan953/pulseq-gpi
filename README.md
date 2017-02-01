@@ -27,19 +27,20 @@ Python language based implementation of [Pulseq](http://pulseq.github.io) in [GP
 > PRO TIP: With your Finder open, press `⌘ + Shift + G` and paste the path to jump to that location
 
 ## 3. Getting started
-This section helps you get started with an example Gradient Recalled Echo (GRE) pulse sequence.
+This section helps you get started implementing a Gradient Recalled Echo (GRE) pulse sequence.
 
-1. Open GPI Lab
-2. Click on `Help` > `Examples`
-3. Drag and drop the `gradient_recalled_echo.net` file onto the blank canvas
-4. Configure the pulse sequence values by right clicking on the `ConfigSeq` and `AddBlock` nodes (refer Appendix for configuration values)
-5. From left to right, click `Compute` events in each Node
-6. Right click on the Matplotlib Node to view graphs
+1. Open GPI Lab.
+2. Click on `Help` > `Examples`.
+3. Drag and drop the `gradient_recalled_echo.net` file onto the blank canvas.
+4. Configure the pulse sequence values by right clicking the `ConfigSeq` and `AddBlock` nodes (refer Appendix for configuration values). Each Event mandatorily needs a unique name. Each Node also mandatorily needs a unique name.
+5. From left to right, click `Compute Events` in each Node.
+6. Right click the 'GenSeq' Node. Here you will see a list of the Nodes you have defined in your canvas. Enter the Node names *in the order in which you want the Events to be played out*. Node names are separated by a comma (,).
+7. Click on 'ComputeEvents' once you are done. Make sure the 'GenSeq' Node's output connectors are linked to the input connectors of the 'Matplotlib' Node.
+6. Right click on the 'Matplotlib' Node to view graphs.
 
 ## 4. Issues & TODO
 1. Issue: Only cartesian coordinate system supported
-3. TODO: Implement read from seq file functionality
-4. TODO: Customize Matplotlib node to support subplots
+2. TODO: Customize Matplotlib node to support subplots
 
 ## 5. Appendix
 > (Nodes are configured from left to right)
