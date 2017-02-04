@@ -50,6 +50,8 @@ def maketrapezoid(**kwargs):
         amplitude = area_result / (rise_time / 2 + fall_time / 2 + flat_time) if amplitude_result == -1 else amplitude
 
     if abs(amplitude) > max_grad:
+        print(abs(amplitude))
+        print(max_grad)
         raise ValueError('Amplitude violation')
 
     grad = Holder()

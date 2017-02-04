@@ -34,10 +34,10 @@ class Sequence:
         s += "\nblock_events: " + str(self.block_events)
         return s
 
-    def addblock(self, *args):
+    def add_block(self, *args):
         block.addblock(self, *args)
 
-    def getblock(self, block_index):
+    def get_block(self, block_index):
         return block.getblock(self, block_index)
 
     def read(self, file_path):
@@ -52,7 +52,7 @@ class Sequence:
         f2 = [fig2.add_subplot(311), fig2.add_subplot(312), fig2.add_subplot(313)]
         t0, time_range = 0, [0, np.inf]
         for iB in range(1, len(self.block_events)):
-            block = self.getblock(iB)
+            block = self.get_block(iB)
             is_valid = time_range[0] <= t0 <= time_range[1]
             if is_valid:
                 if block is not None:

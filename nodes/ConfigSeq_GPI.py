@@ -1,5 +1,3 @@
-import math
-
 import gpi
 import numpy as np
 
@@ -40,7 +38,6 @@ class ExternalNode(gpi.NodeAPI):
             max_slew = float(self.getVal('Maximum Slew Rate (T/m/s)'))
             te = float(self.getVal('Repetition Time (s)'))
             tr = float(self.getVal('Echo Time (s)'))
-            alpha = math.radians(float(self.getVal('Flip Angle (deg)')))
             fov = float(self.getVal('Field of View'))
             Nx = int(self.getVal('Nx'))
             Ny = int(self.getVal('Ny'))
@@ -51,11 +48,9 @@ class ExternalNode(gpi.NodeAPI):
             grad_raster_time = float(self.getVal('Gradient Raster Time (s)'))
 
             kwargs_for_opts = {"max_grad": max_grad, "grad_unit": "mT/m", "max_slew": max_slew, "slew_unit": "T/m/ms",
-                               "te": te,
-                               "tr": tr, "flip": alpha, "fov": fov, "Nx": Nx, "Ny": Ny, "rise_time": rise_time,
+                               "te": te, "tr": tr, "fov": fov, "Nx": Nx, "Ny": Ny, "rise_time": rise_time,
                                "rf_dead_time": rf_dead_time, "adc_dead_time": adc_dead_time,
-                               "rf_raster_time": rf_raster_time,
-                               "grad_raster_time": grad_raster_time}
+                               "rf_raster_time": rf_raster_time, "grad_raster_time": grad_raster_time}
             system = Opts(**kwargs_for_opts)
 
             """

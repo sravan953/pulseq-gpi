@@ -1,9 +1,11 @@
+import math
 from collections import OrderedDict
 
 import gpi
 import h5py
 import numpy as np
 
+import mr_gpi
 from mr_gpi.Sequence.sequence import Sequence
 from mr_gpi.calcduration import calcduration
 from mr_gpi.makeadc import makeadc
@@ -21,14 +23,14 @@ class ExternalNode(gpi.NodeAPI):
         self.addWidget('PushButton', 'ComputeEvents', button_title="Compute events")
 
         # IO Ports
-        self.addInPort(title='input', type='DICT')
-        self.addOutPort(title='output', type='DICT')
-        self.addOutPort(title='adc', type='NPYarray')
-        self.addOutPort(title='rf_mag', type='NPYarray')
-        self.addOutPort(title='rf_phase', type='NPYarray')
-        self.addOutPort(title='trap_x', type='NPYarray')
-        self.addOutPort(title='trap_y', type='NPYarray')
-        self.addOutPort(title='trap_z', type='NPYarray')
+        self.addInPort(title='input', type='DICT', obligation=gpi.REQUIRED)
+        self.addOutPort(title='seq_output', type='DICT')
+        self.addOutPort(title='adc_output', type='NPYarray')
+        self.addOutPort(title='rf_mag_output', type='NPYarray')
+        self.addOutPort(title='rf_phase_output', type='NPYarray')
+        self.addOutPort(title='trap_x_output', type='NPYarray')
+        self.addOutPort(title='trap_y_output', type='NPYarray')
+        self.addOutPort(title='trap_z_output', type='NPYarray')
 
         self.all_event_def = OrderedDict()
         self.all_event_ordered = OrderedDict()
@@ -60,7 +62,7 @@ class ExternalNode(gpi.NodeAPI):
 
             # Setting output
             self.in_dict['seq'] = self.seq
-            self.setData('output', self.in_dict)
+            self.setData('seq_output', self.in_dict)
 
     def make_event_holders(self):
         self.system = self.in_dict['system']
@@ -80,11 +82,14 @@ class ExternalNode(gpi.NodeAPI):
                 delay = makedelay(params[0])
                 self.all_event_holders[event_unique_name] = delay, include_in_loop
             elif event_name == 'Rf':
-                max_grad, max_slew, duration, freq_offset, phase_offset, time_bw_product, apodization, slice_thickness = self.parse_config_params(
+                max_grad, max_slew, flip_angle, duration, freq_offset, phase_offset, time_bw_product, apodization, slice_thickness = self.parse_config_params(
                     event_values)
+                flip_angle = math.radians(flip_angle)
+                max_grad = mr_gpi.convert.convert(max_grad, 'mT/m')
+                max_slew = mr_gpi.convert.convert(max_slew, 'mT/m/ms')
                 max_grad = self.system.max_grad if max_grad == 0 else max_grad
                 max_slew = self.system.max_slew if max_slew == 0 else max_slew
-                kwargs_for_sinc = {"flip_angle": self.system.flip, "system": self.system, "duration": duration,
+                kwargs_for_sinc = {"flip_angle": flip_angle, "system": self.system, "duration": duration,
                                    "freq_offset": freq_offset, "phase_offset": phase_offset,
                                    "time_bw_product": time_bw_product, "apodization": apodization,
                                    "max_grad": max_grad, "max_slew": max_slew, "slice_thickness": slice_thickness}
@@ -94,11 +99,15 @@ class ExternalNode(gpi.NodeAPI):
                     self.all_event_holders['gz'] = gz, include_in_loop
             elif event_name == 'G':
                 channel = event_values.pop(0)
-                duration, area, flat_time, flat_area, amplitude, rise_time = self.parse_config_params(event_values)
+                max_grad, max_slew, duration, area, flat_time, flat_area, amplitude, rise_time = self.parse_config_params(
+                    event_values)
+                max_grad = mr_gpi.convert.convert(max_grad, 'mT/m')
+                max_slew = mr_gpi.convert.convert(max_slew, 'mT/m/ms')
+                max_grad = self.system.max_grad if max_grad == 0 else max_grad
+                max_slew = self.system.max_slew if max_slew == 0 else max_slew
                 kwargs_for_trap = {"channel": channel, "system": self.system, "duration": duration, "area": area,
                                    "flat_time": flat_time, "flat_area": flat_area, "amplitude": amplitude,
-                                   "max_grad": self.system.max_grad, "max_slew": self.system.max_slew,
-                                   "rise_time": rise_time}
+                                   "max_grad": max_grad, "max_slew": max_slew, "rise_time": rise_time}
                 trap = maketrapezoid(**kwargs_for_trap)
                 self.all_event_holders[event_unique_name] = trap, include_in_loop
             elif event_name == 'GyPre':
@@ -166,7 +175,6 @@ class ExternalNode(gpi.NodeAPI):
         # Create Sequence object and add Events
         self.seq = Sequence(self.system)
         gyPre = self.in_dict['gy_pre']
-        print(len(gyPre))
         for i in range(self.system.Ny):
             for unique_node_name in user_ordered_events:
                 events_to_add = []
@@ -181,7 +189,7 @@ class ExternalNode(gpi.NodeAPI):
                             events_to_add.append(self.all_event_holders[event_unique_name][0])
                             self.all_event_ordered[unique_node_name].remove(event_unique_name)
                             self.all_event_holders.pop(event_unique_name)
-                self.seq.addblock(*events_to_add)
+                self.seq.add_block(*events_to_add)
 
     def get_event_matching_unique_name(self, event_unique_name):
         for event in self.all_event_def:
@@ -198,7 +206,7 @@ class ExternalNode(gpi.NodeAPI):
         t_z_values = [[], []]
 
         for iB in range(1, len(self.seq.block_events)):
-            block = self.seq.getblock(iB)
+            block = self.seq.get_block(iB)
             is_valid = time_range[0] <= t0 <= time_range[1]
             if is_valid:
                 if block is not None:
@@ -239,29 +247,29 @@ class ExternalNode(gpi.NodeAPI):
         # ADC
         adc_output = np.array(adc_values)
         adc_output = adc_output.transpose()
-        self.setData('adc', adc_output)
+        self.setData('adc_output', adc_output)
 
         # RF Mag
         rf_mag_output = np.array(rf_mag_values)
         rf_mag_output = rf_mag_output.transpose()
-        self.setData('rf_mag', rf_mag_output)
+        self.setData('rf_mag_output', rf_mag_output)
 
         # RF Phase
         rf_ph_output = np.array(rf_phase_values)
         rf_ph_output = rf_ph_output.transpose()
-        self.setData('rf_phase', rf_ph_output)
+        self.setData('rf_phase_output', rf_ph_output)
 
         # TrapX
         t_x_output = np.array(t_x_values)
         t_x_output = t_x_output.transpose()
-        self.setData('trap_x', t_x_output)
+        self.setData('trap_x_output', t_x_output)
 
         # TrapY
         t_y_output = np.array(t_y_values)
         t_y_output = t_y_output.transpose()
-        self.setData('trap_y', t_y_output)
+        self.setData('trap_y_output', t_y_output)
 
         # TrapZ
         t_z_output = np.array(t_z_values)
         t_z_output = t_z_output.transpose()
-        self.setData('trap_z', t_z_output)
+        self.setData('trap_z_output', t_z_output)

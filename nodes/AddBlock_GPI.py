@@ -16,8 +16,40 @@ class AddBlockWidgets(gpi.GenericWidgetGroup):
         self.button_names_list = ['Off', 'Delay', 'Rf', 'G', 'GyPre', 'ArbGrad', 'ADC']
         self.clicked_button_name, self.clicked_button_index = '', 0
         self.buttons_list, self.string_box_list = [], []
-        self.wdg_layout = QtGui.QGridLayout()
 
+        # Labels for StringBoxes for configuring Events
+        self.delay_labels = ['Unique Event name', 'Delay (s)']
+        self.sinc_labels = ['Unique Event name', 'Maximum Gradient (mT/m)', 'Maximum Slew (T/m/s)', 'Flip Angle (deg)',
+                            'Duration (s)', 'Frequency Offset', 'Phase Offset', 'Time Bw Product', 'Apodization',
+                            'Slice Thickness (m)']
+        self.trap_labels = ['Unique Event name', 'Channel', 'Maximum Gradient (mT/m)', 'Maximum Slew (T/m/s)',
+                            'Duration (s)', 'Area', 'Flat Time (s)', 'Flat Area', 'Amplitude (Hz)', 'Rise Time (s)']
+        self.arb_grad_labels = ['Unique Event name', 'Channel', 'Maximum Gradient (mT/m)', 'Maximum Slew (T/m/s)']
+        self.adc_labels = ['Unique Event name', 'Number of samples', 'Dwell (s)', 'Duration (s)', 'Delay (s)',
+                           'Frequency Offset', 'Phase Offset']
+        # Placeholders for StringBoxes for configuring Events
+        self.delay_placeholders = ['event_unique_name', 'delay']
+        self.sinc_placeholders = ['event_unique_name', 'max_grad', 'max_slew', 'flipAngle', 'duration', 'freq_offset',
+                                  'phase_offset', 'time_bw_prod', 'apodization', 'slice_thickness']
+        self.trap_placeholders = ['event_unique_name', 'channel', 'max_grad', 'max_slew', 'duration', 'area',
+                                  'flat_time', 'flat_area', 'amplitude', 'rise_time']
+        self.arb_grad_placeholders = ['event_unique_name', 'channel', 'max_grad', 'max_slew']
+        self.adc_placeholders = ['event_unique_name', 'num_samples', 'dwell', 'duration', 'delay', 'freq_offset',
+                                 'phase_offset']
+
+        # Variable to denote the maximum number of StringBoxes to be added; depends on the Event which has the
+        # maximum number of configurable parameters
+        self.num_string_boxes = max(len(self.delay_labels), len(self.sinc_labels), len(self.trap_labels),
+                                    len(self.arb_grad_labels), len(self.adc_labels))
+
+        # First index is None because the first button is 'Off'. Look into event_def['event_values'] in get_val()
+        # Fourth index is also None because of GyPre - no config
+        self.labels = [None, self.delay_labels, self.sinc_labels, self.trap_labels, None, self.arb_grad_labels,
+                       self.adc_labels]
+        self.placeholders = [None, self.delay_placeholders, self.sinc_placeholders, self.trap_placeholders, None,
+                             self.arb_grad_placeholders, self.adc_placeholders]
+
+        self.wdg_layout = QtGui.QGridLayout()
         self.add_event_pushbuttons()
         self.add_config_stringboxes()
         self.add_include_in_loop_pushbutton()
@@ -26,34 +58,6 @@ class AddBlockWidgets(gpi.GenericWidgetGroup):
 
         self.setLayout(self.wdg_layout)
         self.buttons_list[0].setChecked(True)
-
-        # Labels for StringBoxes for configuring Events
-        self.delay_labels = ['Unique Event name', 'Delay (s)']
-        self.sinc_labels = ['Unique Event name', 'Maximum Gradient (mT/m)', 'Maximum Slew (T/m/s)', 'Duration (s)',
-                            'Frequency Offset', 'Phase Offset', 'Time Bw Product', 'Apodization', 'Slice Thickness (m)']
-        self.trap_labels = ['Unique Event name', 'Channel', 'Duration (s)', 'Area', 'Flat Time (s)', 'Flat Area',
-                            'Amplitude (Hz)', 'Rise Time (s)']
-        self.arb_grad_labels = ['Unique Event name', 'Channel', 'Maximum Gradient (mT/m)', 'Maximum Slew (T/m/s)']
-        self.adc_labels = ['Unique Event name', 'Number of samples', 'Dwell (s)', 'Duration (s)', 'Delay (s)',
-                           'Frequency Offset', 'Phase Offset']
-        # Placeholders for StringBoxes for configuring Events
-        self.delay_placeholders = ['event_unique_name', 'delay']
-        self.sinc_placeholders = ['event_unique_name', 'max_grad', 'max_slew', 'duration', 'freq_offset',
-                                  'phase_offset',
-                                  'time_bw_prod', 'apodization', 'slice_thickness']
-        self.trap_placeholders = ['event_unique_name', 'channel', 'duration', 'area', 'flat_time', 'flat_area',
-                                  'amplitude',
-                                  'rise_time']
-        self.arb_grad_placeholders = ['event_unique_name', 'channel', 'max_grad', 'max_slew']
-        self.adc_placeholders = ['event_unique_name', 'num_samples', 'dwell', 'duration', 'delay', 'freq_offset',
-                                 'phase_offset']
-
-        # First index is None because the first button is 'Off'. Look into event_def['event_values'] in get_val()
-        # Fourth index is also None because of GyPre - no config
-        self.labels = [None, self.delay_labels, self.sinc_labels, self.trap_labels, None, self.arb_grad_labels,
-                       self.adc_labels]
-        self.placeholders = [None, self.delay_placeholders, self.sinc_placeholders, self.trap_placeholders, None,
-                             self.arb_grad_placeholders, self.adc_placeholders]
 
     def add_event_pushbuttons(self):
         """Adding PushButtons for the Events."""
@@ -71,7 +75,7 @@ class AddBlockWidgets(gpi.GenericWidgetGroup):
 
     def add_config_stringboxes(self):
         """Adding StringBoxes for configuring the Events."""
-        for x in range(9):
+        for x in range(self.num_string_boxes):
             string_box = gpi.StringBox(str(x))
             string_box.set_visible(False)
             # Syntax: addWidget(widget, row, col, rowSpan, colSpan)
@@ -87,7 +91,7 @@ class AddBlockWidgets(gpi.GenericWidgetGroup):
         self.include_in_loop_pushbutton.clicked.connect(self.button_clicked)
         self.include_in_loop_pushbutton.clicked.connect(self.valueChanged)
         # Syntax: addWidget(widget, row, col, rowSpan, colSpan)
-        self.wdg_layout.addWidget(self.include_in_loop_pushbutton, 10, 1, 1, 6)
+        self.wdg_layout.addWidget(self.include_in_loop_pushbutton, 11, 1, 1, 6)
 
     def add_include_gz_pushbutton(self):
         """Adding PushButton toggle for Gz along with Rf."""
@@ -97,7 +101,7 @@ class AddBlockWidgets(gpi.GenericWidgetGroup):
         self.include_gz_pushbutton.clicked.connect(self.button_clicked)
         self.include_gz_pushbutton.clicked.connect(self.valueChanged)
         # Syntax: addWidget(widget, row, col, rowSpan, colSpan)
-        self.wdg_layout.addWidget(self.include_gz_pushbutton, 11, 1, 1, 6)
+        self.wdg_layout.addWidget(self.include_gz_pushbutton, 12, 1, 1, 6)
 
     def add_file_browser(self):
         """Adding FileBrowser necessary for ArbGrad Event."""
@@ -220,12 +224,13 @@ class AddBlockWidgets(gpi.GenericWidgetGroup):
 class ExternalNode(gpi.NodeAPI):
     """
     This node providers options for setting up the event that needs to be added. Event parameters should be set to 0
-    if left unconfigured. Up to 6 simultaneous events can be added in one block. The 'ComputeEvents' button gathers the
-    input data and constructs the block elements. The output of this node (or a chain of AddBlock nodes) has to be
-    supplied to a GenSeq node.
+    if left unconfigured. Up to 6 simultaneous events can be added in one block. The 'ComputeEvents' button gathers
+    the input data into a dict object. The output of this node (or a chain of AddBlock nodes) has to be supplied to a
+    GenSeq node.
 
      Units:
      - duration (s)
+     - flipAngle (deg)
      - flatTime (s)
      - riseTime (s)
      - dwell (s)
