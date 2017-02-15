@@ -5,11 +5,11 @@ from mr_gpi.decompress_shape import decompress_shape
 from mr_gpi.holder import Holder
 
 
-def addblock(self, *args):
-    setblock(self, len(self.block_events) + 1, *args)
+def add_block(self, *args):
+    set_block(self, len(self.block_events) + 1, *args)
 
 
-def setblock(self, block_index, *args):
+def set_block(self, block_index, *args):
     self.block_events[block_index] = np.zeros(6)
     duration = 0
     for event in args:
@@ -88,7 +88,7 @@ def setblock(self, block_index, *args):
             duration = max(duration, event.delay)
 
 
-def getblock(self, block_index):
+def get_block(self, block_index):
     block = {}
     event_ind = self.block_events[block_index]
     if event_ind[0] > 0:

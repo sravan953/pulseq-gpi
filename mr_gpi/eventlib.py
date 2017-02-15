@@ -8,10 +8,10 @@ class EventLibrary:
 
     def __str__(self):
         s = "EventLibrary:"
-        s += "\nkeys: " + str(self.keys)
-        s += "\ndata: " + str(self.data)
-        s += "\nlengths: " + str(self.lengths)
-        s += "\ntype: " + str(self.type)
+        s += "\nkeys: " + str(len(self.keys))
+        s += "\ndata: " + str(len(self.data))
+        s += "\nlengths: " + str(len(self.lengths))
+        s += "\ntype: " + str(len(self.type))
         return s
 
     def find(self, new_data):

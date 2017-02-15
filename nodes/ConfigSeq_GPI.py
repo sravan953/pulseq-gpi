@@ -63,7 +63,7 @@ class ExternalNode(gpi.NodeAPI):
 
             self.setData('output', out_dict)
 
-            # To display the computed info inside the node
+            # To display the computed info in the TextBox
             self.setAttr('System limits', val=str(system))
         except ValueError:
             pass

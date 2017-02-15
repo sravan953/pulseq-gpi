@@ -52,13 +52,13 @@ delay1 = makedelay(delayTE)
 delay2 = makedelay(delayTR)
 
 for i in range(Ny):
-    seq.addblock(*[rf, gz])
+    seq.add_block(*[rf, gz])
     kwargsForGyPre = {"channel": 'y', "system": system, "area": phase_areas[i], "duration": 2e-3}
     gyPre = maketrapezoid(**kwargsForGyPre)
-    seq.addblock(*[gx_pre, gyPre, gz_reph])
-    seq.addblock(*[delay1])
-    seq.addblock(*[gx, adc])
-    seq.addblock(*[delay2])
+    seq.add_block(*[gx_pre, gyPre, gz_reph])
+    seq.add_block(*[delay1])
+    seq.add_block(*[gx, adc])
+    seq.add_block(*[delay2])
 
 seq.plot()
 # The .seq file will be available inside the /gpi/<user>/pulseq-gpi folder

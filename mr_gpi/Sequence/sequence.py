@@ -31,14 +31,14 @@ class Sequence:
         s += "\ndelay_library: " + str(self.delay_library)
         s += "\nrf_raster_time: " + str(self.rf_raster_time)
         s += "\ngrad_raster_time: " + str(self.grad_raster_time)
-        s += "\nblock_events: " + str(self.block_events)
+        s += "\nblock_events: " + str(len(self.block_events))
         return s
 
     def add_block(self, *args):
-        block.addblock(self, *args)
+        block.add_block(self, *args)
 
     def get_block(self, block_index):
-        return block.getblock(self, block_index)
+        return block.get_block(self, block_index)
 
     def read(self, file_path):
         read(self, file_path)

@@ -113,10 +113,10 @@ class AddBlockWidgets(gpi.GenericWidgetGroup):
 
     # Getter
     def get_val(self):
-        if self.clicked_button_index == 0:
+        if self.clicked_button_index == self.button_names_list.index('Off'):
             # 'Off' PushButton selected, return empty dict
             return {}
-        elif self.clicked_button_index == 4:
+        elif self.clicked_button_index == self.button_names_list.index('GyPre'):
             # Phase encode, GyPre
             return {'event_name': 'GyPre', 'event_unique_name': 'gyPre', 'event_values': None, 'include_in_loop': True}
         else:
@@ -132,6 +132,8 @@ class AddBlockWidgets(gpi.GenericWidgetGroup):
             event_def = {}
             event_def['event_name'] = self.clicked_button_name
             event_def['event_unique_name'] = self.string_box_list[0].get_val()
+            # Slice string_box_list from index 1, because index 0 maps to event_unique_name. Consequently, slice the
+            # corresponding placeholder list from index 1 too.
             event_def['event_values'] = OrderedDict(
                 zip(self.placeholders[self.clicked_button_index][1:], [x.get_val() for x in self.string_box_list[1:]]))
             event_def['include_in_loop'] = self.include_in_loop_pushbutton.isChecked()
@@ -263,8 +265,11 @@ class ExternalNode(gpi.NodeAPI):
     def compute(self):
         if 'ComputeEvents' in self.widgetEvents() or 'input' in self.portEvents():
             in_dict = self.getData('input')
+            # all_event_def contains the event definitions
             all_event_def = in_dict['all_event_def'] if 'all_event_def' in in_dict else []
+            # all_event_ordered contains key-value pair mappings of unique_node_name-ordered_events
             all_event_ordered = in_dict['all_event_ordered'] if 'all_event_ordered' in in_dict else OrderedDict()
+            # ordered_events is a list of all event_unique_name defined by the user in this AddBlock Node
             ordered_events = []
 
             for x in range(self.num_concurrent_events):
