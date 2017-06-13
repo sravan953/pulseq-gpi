@@ -4,6 +4,20 @@ from mr_gpi.holder import Holder
 
 
 def compress_shape(decompressed_shape):
+    """
+    Returns a run-length encoded compressed shape.
+
+    Parameters
+    ----------
+    decompressed_shape : ndarray
+        Decompressed shape.
+
+    Returns
+    -------
+    compressed_shape : Holder
+        A Holder object containing the shape of the compressed shape ndarray and the compressed shape ndarray itself.
+    """
+
     if decompressed_shape.shape[0] != 1:
         raise ValueError("input should be of shape (1,x)")
     if not isinstance(decompressed_shape, np.ndarray):
@@ -32,7 +46,7 @@ def compress_shape(decompressed_shape):
     smallest_indices = np.where(v_abs < 1e-10)
     v[smallest_indices] = 0
 
-    s = Holder()
-    s.num_samples = decompressed_shape.shape[1]
-    s.data = v.reshape([1, v.shape[0]])
-    return s
+    compressed_shape = Holder()
+    compressed_shape.num_samples = decompressed_shape.shape[1]
+    compressed_shape.data = v.reshape([1, v.shape[0]])
+    return compressed_shape

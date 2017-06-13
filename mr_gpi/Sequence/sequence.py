@@ -3,8 +3,8 @@ from matplotlib import pyplot as plt
 
 import mr_gpi.calcduration
 from mr_gpi.Sequence import block
-from mr_gpi.Sequence.read import read
-from mr_gpi.Sequence.write import write
+from mr_gpi.Sequence.read_seq import read
+from mr_gpi.Sequence.write_seq import write
 from mr_gpi.eventlib import EventLibrary
 from mr_gpi.opts import Opts
 
@@ -35,9 +35,27 @@ class Sequence:
         return s
 
     def add_block(self, *args):
-        block.add_block(self, *args)
+        """
+        Adds supplied list of Holder objects as a Block.
+
+        Parameters
+        ----------
+        args : list
+            List of Holder objects to be added as a Block.
+        """
+
+        block.add_block(self, len(self.block_events) + 1, *args)
 
     def get_block(self, block_index):
+        """
+        Returns Block at block_index.
+
+        Parameters
+        ----------
+        block_index : int
+            Index of required block.
+        """
+
         return block.get_block(self, block_index)
 
     def read(self, file_path):
@@ -47,6 +65,8 @@ class Sequence:
         write(self, name)
 
     def plot(self):
+        """Show Matplotlib plot of all Events in the Sequence object."""
+        
         fig1, fig2 = plt.figure(1), plt.figure(2)
         f11, f12, f13 = fig1.add_subplot(311), fig1.add_subplot(312), fig1.add_subplot(313)
         f2 = [fig2.add_subplot(311), fig2.add_subplot(312), fig2.add_subplot(313)]

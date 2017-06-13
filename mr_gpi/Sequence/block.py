@@ -5,11 +5,18 @@ from mr_gpi.decompress_shape import decompress_shape
 from mr_gpi.holder import Holder
 
 
-def add_block(self, *args):
-    set_block(self, len(self.block_events) + 1, *args)
+def add_block(self, block_index, *args):
+    """
+    Adds supplied list of Holder objects at position specified by block_index.
 
+    Parameters
+    ----------
+    block_index : int
+        Index at which Block has to be inserted.
+    args : list
+        List of Holder objects to be added as a Block.
+    """
 
-def set_block(self, block_index, *args):
     self.block_events[block_index] = np.zeros(6)
     duration = 0
     for event in args:
@@ -18,7 +25,7 @@ def set_block(self, block_index, *args):
             amplitude = np.max(mag)
             mag = np.divide(mag, amplitude)
             # Following two lines of code are workarounds for numpy's divide functions returning NaN when mathematical
-            # edge cases are encountered (eg., divide by 0)
+            # edge cases are encountered (eg. divide by 0)
             mag[np.isnan(mag)] = 0
             phase = np.angle(event.signal)
             phase[np.where(phase < 0)] += 2 * np.pi
@@ -89,6 +96,20 @@ def set_block(self, block_index, *args):
 
 
 def get_block(self, block_index):
+    """
+    Returns Block at position specified by block_index.
+
+    Parameters
+    ----------
+    block_index : int
+        Index of Block to be retrieved.
+
+    Returns
+    -------
+    block : dict
+        Block at position specified by block_index.
+    """
+
     block = {}
     event_ind = self.block_events[block_index]
     if event_ind[0] > 0:

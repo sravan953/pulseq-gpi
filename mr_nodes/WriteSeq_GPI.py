@@ -2,8 +2,7 @@ import gpi
 
 
 class ExternalNode(gpi.NodeAPI):
-    """This node lets the user specify a file name and save location to write open-source file format seq files.
-    """
+    """This node lets the user specify a file name and save location to write open-source file format seq files."""
 
     def initUI(self):
         # IO Ports
@@ -12,6 +11,7 @@ class ExternalNode(gpi.NodeAPI):
         # Widgets
         self.addWidget('SaveFileBrowser', 'File location', button_title='Browse')
         self.addWidget('PushButton', 'Write seq file', button_title='Save now')
+
         return 0
 
     def compute(self):
@@ -19,5 +19,6 @@ class ExternalNode(gpi.NodeAPI):
             in_dict = self.getData('input')
             seq = in_dict['seq']
             file_location = self.getVal('File location')
-            file_location += '.seq' if '.seq' not in file_location else ''
             seq.write(file_location)
+
+            return 0

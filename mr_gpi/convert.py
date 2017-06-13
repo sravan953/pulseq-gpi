@@ -20,4 +20,4 @@ def convert_from_value(from_value, from_unit):
             standard = from_value * 1e9 / (2 * pi)
         return standard
     else:
-        raise TypeError("input parameters should be: from_value, from_unit")
+        raise TypeError("input parameters_params should be: from_value, from_unit")

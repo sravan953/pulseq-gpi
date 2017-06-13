@@ -51,33 +51,14 @@ class ExternalNode(gpi.NodeAPI):
                                "te": te, "tr": tr, "fov": fov, "Nx": Nx, "Ny": Ny, "rise_time": rise_time,
                                "rf_dead_time": rf_dead_time, "adc_dead_time": adc_dead_time,
                                "rf_raster_time": rf_raster_time, "grad_raster_time": grad_raster_time}
-            system = Opts(**kwargs_for_opts)
-
-            """
-            out_dict contains:
-            - system: Opts - System limits
-            - gy_pre: list - All phase encode values
-            """
+            system = Opts(kwargs_for_opts)
             out_dict['system'] = system
-            out_dict['gy_pre'] = self.compute_gypre(fov, Ny, system)
 
             self.setData('output', out_dict)
 
             # To display the computed info in the TextBox
             self.setAttr('System limits', val=str(system))
+
+            return 0
         except ValueError:
-            pass
-
-        return 0
-
-    def compute_gypre(self, fov, Ny, system):
-        """Compute all phase encode (Gy-Prephase) values."""
-        delta_k = 1 / fov
-        phase_areas = np.array(([x for x in range(0, Ny)]))
-        phase_areas = (phase_areas - Ny / 2) * delta_k
-        gy_pre_list = []
-        for i in range(Ny):
-            kwargs_for_gy_pre = {"channel": 'y', "system": system, "area": phase_areas[i], "duration": 2e-3}
-            gy_pre = maketrapezoid(**kwargs_for_gy_pre)
-            gy_pre_list.append(gy_pre)
-        return gy_pre_list
+            return 1

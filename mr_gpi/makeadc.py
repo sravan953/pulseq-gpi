@@ -1,8 +1,24 @@
+from decimal import *
+
 from mr_gpi.holder import Holder
 from mr_gpi.opts import Opts
 
 
-def makeadc(**kwargs):
+def makeadc(kwargs):
+    """
+    Makes a Holder object for an ADC Event.
+
+    Parameters
+    ----------
+    kwargs : dict
+        Key value mappings of ADC Event parameters_params and values.
+
+    Returns
+    -------
+    adc : Holder
+        ADC Event.
+    """
+
     num_samples = kwargs.get("num_samples", 0)
     system = kwargs.get("system", Opts())
     dwell = kwargs.get("dwell", 0)
@@ -21,8 +37,10 @@ def makeadc(**kwargs):
     adc.dead_time = system.adc_dead_time
 
     if (dwell == 0 and duration == 0) or (dwell > 0 and duration > 0):
-        raise Exception("either dwell (s) or duration (s) must be defined")
+        raise ValueError("Either dwell or duration must be defined, not both")
 
-    adc.dwell = duration / num_samples if duration > 0 else adc.dwell
+    if duration > 0:
+        getcontext().prec = 1
+        adc.dwell = float(Decimal(duration) / Decimal(num_samples))
     adc.duration = dwell * num_samples if dwell > 0 else 0
     return adc

@@ -4,7 +4,21 @@ from mr_gpi.holder import Holder
 from mr_gpi.opts import Opts
 
 
-def makearbitrarygrad(**kwargs):
+def makearbitrarygrad(kwargs):
+    """
+    Makes a Holder object for an arbitrary gradient Event.
+
+    Parameters
+    ----------
+    kwargs : dict
+        Key value mappings of RF Event parameters_params and values.
+
+    Returns
+    -------
+    grad : Holder
+        Trapezoidal gradient Event configured based on supplied kwargs.
+    """
+
     channel = kwargs.get("channel", "z")
     system = kwargs.get("system", Opts())
     waveform = kwargs.get("waveform")

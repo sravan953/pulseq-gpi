@@ -1,15 +1,27 @@
 from mr_gpi.holder import Holder
 
 
-def calcduration(input_dict):
-    return calcholderduration(*input_dict.values())
+def calcduration(*events):
+    """
+    Calculate the cumulative duration of Events.
 
+    Parameters
+    ----------
+    events : list
+        List of Holder objects. Can also be a list containing a single block (see plot() in Sequence).
 
-def calcholderduration(*values):
+    Returns
+    -------
+    duration : float
+        The cumulative duration of the Events passed.
+    """
+    if isinstance(events[0], dict):
+        events = events[0].values()
+
     duration = 0
-    for event in values:
+    for event in events:
         if not isinstance(event, Holder):
-            raise TypeError("input(s) should be of type mr_gpi.holder.Holder")
+            raise TypeError("input(s) should be of type mr_gpi.events.Holder")
 
         if event.type == 'delay':
             duration = max(duration, event.delay)

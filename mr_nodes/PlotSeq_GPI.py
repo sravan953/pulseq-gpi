@@ -1,8 +1,9 @@
+import os
+
 import gpi
 import matplotlib.pyplot as plt
 import numpy as np
 from gpi import QtGui
-import os
 
 import mr_gpi
 
@@ -65,5 +66,5 @@ class ExternalNode(gpi.NodeAPI):
         os.remove('plot_temp.png')
 
     def execType(self):
-        '''Could be GPI_THREAD, GPI_PROCESS, GPI_APPLOOP'''
+        """Could be GPI_THREAD, GPI_PROCESS, GPI_APPLOOP"""
         return gpi.GPI_APPLOOP

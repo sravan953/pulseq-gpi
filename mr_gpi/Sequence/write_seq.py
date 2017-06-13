@@ -4,13 +4,15 @@ import numpy as np
 def write(self, file_name):
     """
     Writes a .seq file from the Sequence object calling the method.
+    >.0f is used when only decimals have to be displayed.
+    >g is used when insignificant zeros have to be truncated.
 
     Parameters
     ----------
     file_name : str
         File name of .seq file to be written.
     """
-
+    file_name += '.seq' if file_name[-4:] != '.seq' not in file_name else ''
     output_file = open(file_name, 'w')
     output_file.write("# Pulseq sequence file\n")
     output_file.write("# Created by GPI Lab\n\n")
@@ -30,7 +32,7 @@ def write(self, file_name):
     output_file.write('# ..        Hz   ....     ....   Hz   rad\n')
     output_file.write('[RF]\n')
     rf_lib_keys = self.rf_library.keys
-    id_format_str = '{:>1.0f} {:>12.3f} {:>1.0f} {:>1.0f} {:>1.0f} {:>1.0f}\n'
+    id_format_str = '{:>1.0f} {:>12g} {:>1.0f} {:>1.0f} {:>1.0f} {:>1.0f}\n'
     for k in rf_lib_keys.keys():
         lib_data = self.rf_library.data[k][0:5]
         s = id_format_str.format(*np.insert(lib_data, 0, k))
@@ -49,7 +51,7 @@ def write(self, file_name):
                 output_file.write('# ..      Hz/m     ....\n')
                 output_file.write('[GRADIENTS]\n')
                 keys = self.grad_library.keys
-                id_format_str = '{:>1.0f} {:>12.0f} {:>1.0f} \n'
+                id_format_str = '{:>1.0f} {:>12g} {:>1.0f} \n'
                 for k in keys[arb_grad_mask]:
                     s = id_format_str.format(*np.insert(self.grad_library.data[k], 0, k))
                     output_file.write(s)
@@ -63,12 +65,11 @@ def write(self, file_name):
         for x in trap_grad_mask:
             if x != 0:
                 keys = self.grad_library.keys
-                id_format_str = '{:>2.0f} {:>12.1f} {:>3.0f} {:>4.0f} {:>3.0f}\n'
+                id_format_str = '{:>2.0f} {:>12g} {:>3.0f} {:>4.0f} {:>3.0f}\n'
                 k = keys[x]
                 data = self.grad_library.data[k]
                 data = np.reshape(data, (1, data.shape[0]))
-                data[0][1:] = np.round(1e6 * data[0][1:])
-                data = np.round(data, decimals=1)
+                data[0][1:] = np.round(1e6 * data[0][1:], decimals=2)
                 s = id_format_str.format(*np.insert(data, 0, k))
                 output_file.write(s)
         output_file.write('\n')
@@ -79,7 +80,7 @@ def write(self, file_name):
         output_file.write('# ..  ..    ns    us   Hz   rad\n')
         output_file.write('[ADC]\n')
         keys = self.adc_library.keys
-        id_format_str = '{:>2.0f} {:>3.0f} {:>6.0f} {:>3.0f} {:>.0f} {:>.0f}\n'
+        id_format_str = '{:>2.0f} {:>3.0f} {:>6.0f} {:>3.0f} {:>g} {:>g}\n'
         for k in keys.values():
             data = np.multiply(self.adc_library.data[k][0:5], [1, 1e9, 1e6, 1, 1])
             s = id_format_str.format(*np.insert(data, 0, k))
@@ -107,7 +108,7 @@ def write(self, file_name):
             s = 'shape_id {:>.0f}\n'
             s = s.format(k)
             output_file.write(s)
-            s = 'num_samples {:>.0f}\n'
+            s = 'num_samples {:>g}\n'
             s = s.format(shape_data[0][0])
             output_file.write(s)
             s = '{:g}\n'

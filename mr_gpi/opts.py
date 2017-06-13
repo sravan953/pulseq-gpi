@@ -1,8 +1,10 @@
 import mr_gpi.convert
 
 
-class Opts:
-    def __init__(self, **kwargs):
+class Opts():
+    """This class contains the gradient limits of the MR system."""
+
+    def __init__(self, kwargs=dict()):
         valid_grad_units = ['Hz/m', 'mT/m', 'rad/ms/mm']
         valid_slew_units = ['Hz/m/s', 'mT/m/ms', 'T/m/s', 'rad/ms/mm/ms']
         self.max_grad = kwargs.get("max_grad", 30)

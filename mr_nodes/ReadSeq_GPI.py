@@ -5,8 +5,7 @@ from mr_gpi.opts import Opts
 
 
 class ExternalNode(gpi.NodeAPI):
-    """This node lets the user specify a file name and save location to write open-source file format seq files.
-    """
+    """This node lets the user specify a file name and save location to write open-source file format seq files.    """
 
     def initUI(self):
         # IO Ports
@@ -21,4 +20,4 @@ class ExternalNode(gpi.NodeAPI):
             file_location = self.getVal('File location')
             seq = Sequence(Opts())
             seq.read(file_location)
-            self.setData('output', {"sequence": seq})
+            self.setData('output', {"seq": seq})

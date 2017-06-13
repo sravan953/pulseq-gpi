@@ -10,6 +10,7 @@ from mr_gpi.Sequence.sequence import Sequence
 from mr_gpi.calcduration import calcduration
 from mr_gpi.makeadc import makeadc
 from mr_gpi.makearbitrary_grad import makearbitrarygrad
+from mr_gpi.makeblock import makeblockpulse
 from mr_gpi.makedelay import makedelay
 from mr_gpi.makesinc import makesincpulse
 from mr_gpi.maketrap import maketrapezoid
@@ -34,7 +35,7 @@ class ExternalNode(gpi.NodeAPI):
         self.addOutPort(title='trap_z_output', type='NPYarray')
 
         self.all_event_def = OrderedDict()
-        self.all_event_ordered = OrderedDict()
+        self.all_events_ordered = OrderedDict()
 
         return 0
 
@@ -44,10 +45,10 @@ class ExternalNode(gpi.NodeAPI):
             self.seq = self.in_dict['sequence']
         else:
             self.all_event_def = self.in_dict['all_event_def']
-            self.all_event_ordered = self.in_dict['all_event_ordered']
+            self.all_events_ordered = self.in_dict['all_events_ordered']
 
             events_added_text = str()
-            for unique_name in self.all_event_ordered:
+            for unique_name in self.all_events_ordered:
                 events_added_text += unique_name + '\n'
             self.setAttr('Events you defined', **{'val': events_added_text})
 
@@ -57,7 +58,7 @@ class ExternalNode(gpi.NodeAPI):
             if len(user_ordered_events) == 0:
                 raise ValueError('Enter [Unique Name] of Events in the order you want Events to be added.')
 
-            self.make_event_holders()
+            self.make_event_holders
             self.add_blocks_to_seq(user_ordered_events)
             self.set_plot_outputs()
 
@@ -68,7 +69,12 @@ class ExternalNode(gpi.NodeAPI):
             self.in_dict['seq'] = self.seq
             self.setData('seq_output', self.in_dict)
 
+            return 0
+
+    @property
     def make_event_holders(self):
+        """Make appropriate Holder objects depending on the Event type."""
+
         self.system = self.in_dict['system']
         # arbgrad_file_path is only for arbitrary gradients
         arbgrad_file_path = self.all_event_def['file_path'] if 'file_path' in self.all_event_def else None
@@ -77,15 +83,15 @@ class ExternalNode(gpi.NodeAPI):
         for event in self.all_event_def:
             event_unique_name = event['event_unique_name']
             event_name = event['event_name']
-            if event_unique_name != 'gyPre':
-                event_values = list(event['event_values'].values())
+            event_values = list(event['event_values'].values())
             include_in_loop = event['include_in_loop']
 
             if event_name == 'Delay':
                 params = self.parse_config_params(event_values)
                 delay = makedelay(params[0])
                 self.all_event_holders[event_unique_name] = delay, include_in_loop
-            elif event_name == 'Rf':
+            elif event_name == 'SincRF':
+                include_gz = event['include_gz']
                 max_grad, max_slew, flip_angle, duration, freq_offset, phase_offset, time_bw_product, apodization, slice_thickness = self.parse_config_params(
                     event_values)
                 flip_angle = math.radians(flip_angle)
@@ -97,10 +103,33 @@ class ExternalNode(gpi.NodeAPI):
                                    "freq_offset": freq_offset, "phase_offset": phase_offset,
                                    "time_bw_product": time_bw_product, "apodization": apodization,
                                    "max_grad": max_grad, "max_slew": max_slew, "slice_thickness": slice_thickness}
-                rf, gz = makesincpulse(**kwargs_for_sinc)
-                self.all_event_holders[event_unique_name] = rf, include_in_loop
-                if event['include_gz']:
+                if include_gz:
+                    rf, gz = makesincpulse(kwargs_for_sinc, 2)
+                    self.all_event_holders[event_unique_name] = rf, include_in_loop
                     self.all_event_holders['gz_' + event_unique_name] = gz, include_in_loop
+                else:
+                    rf = makesincpulse(kwargs_for_sinc)
+                    self.all_event_holders[event_unique_name] = rf, include_in_loop
+            elif event_name == 'BlockRF':
+                include_gz = event['include_gz']
+                max_grad, max_slew, flip_angle, duration, freq_offset, phase_offset, time_bw_product, bandwidth, slice_thickness = self.parse_config_params(
+                    event_values)
+                flip_angle = math.radians(flip_angle)
+                max_grad = convert.convert_from_value(max_grad, 'mT/m')
+                max_slew = convert.convert_from_value(max_slew, 'mT/m/ms')
+                max_grad = self.system.max_grad if max_grad == 0 else max_grad
+                max_slew = self.system.max_slew if max_slew == 0 else max_slew
+                kwargs_for_block = {"flip_angle": flip_angle, "system": self.system, "duration": duration,
+                                    "freq_offset": freq_offset, "phase_offset": phase_offset,
+                                    "time_bw_product": time_bw_product, "bandwidth": bandwidth,
+                                    "max_grad": max_grad, "max_slew": max_slew, "slice_thickness": slice_thickness}
+                if include_gz:
+                    rf, gz = makeblockpulse(kwargs_for_block, 2)
+                    self.all_event_holders[event_unique_name] = rf, include_in_loop
+                    self.all_event_holders['gz_' + event_unique_name] = gz, include_in_loop
+                else:
+                    rf = makeblockpulse(kwargs_for_block)
+                    self.all_event_holders[event_unique_name] = rf, include_in_loop
             elif event_name == 'G':
                 channel = event_values.pop(0)
                 max_grad, max_slew, duration, area, flat_time, flat_area, amplitude, rise_time = self.parse_config_params(
@@ -119,10 +148,23 @@ class ExternalNode(gpi.NodeAPI):
                 kwargs_for_trap = {"channel": channel, "system": self.system, "duration": duration, "area": area,
                                    "flat_time": flat_time, "flat_area": flat_area, "amplitude": amplitude,
                                    "max_grad": max_grad, "max_slew": max_slew, "rise_time": rise_time}
-                trap = maketrapezoid(**kwargs_for_trap)
+                trap = maketrapezoid(kwargs_for_trap)
                 self.all_event_holders[event_unique_name] = trap, include_in_loop
             elif event_name == 'GyPre':
-                self.all_event_holders[event_unique_name] = 'gyPre', True
+                duration, area = self.parse_config_params(event_values)
+                Ny = self.system.Ny
+                delta_k = 1 / self.system.fov
+                gy_pre_list = []
+
+                for i in range(Ny):
+                    kwargs_for_gy_pre = {"channel": 'y', "system": self.system, "area": (i - Ny / 2) * delta_k,
+                                         "duration": duration}
+                    if area != 0:
+                        kwargs_for_gy_pre['area'] = area
+                    gy_pre = maketrapezoid(kwargs_for_gy_pre)
+                    gy_pre_list.append(gy_pre)
+
+                self.all_event_holders[event_unique_name] = gy_pre_list, True
             elif event_name == 'ArbGrad':
                 channel = event_values.pop(0)
                 max_grad, max_slew = self.parse_config_params(event_values)
@@ -139,7 +181,7 @@ class ExternalNode(gpi.NodeAPI):
                 waveform = file[self.dataset].value
                 kwargs_for_arb_grad = {"channel": channel, "waveform": waveform, "max_grad": max_grad,
                                        "max_slew": max_slew, "system": self.system}
-                arb_grad = makearbitrarygrad(**kwargs_for_arb_grad)
+                arb_grad = makearbitrarygrad(kwargs_for_arb_grad)
                 self.all_event_holders[event_unique_name] = arb_grad, include_in_loop
             elif event_name == 'ADC':
                 num_samples, dwell, duration, delay, freq_offset, phase_offset = self.parse_config_params(
@@ -147,17 +189,23 @@ class ExternalNode(gpi.NodeAPI):
                 kwargs_for_adc = {"num_samples": num_samples, "system": self.system, "dwell": dwell,
                                   "duration": duration, "delay": delay, "freq_offset": freq_offset,
                                   "phase_offset": phase_offset}
-                adc = makeadc(**kwargs_for_adc)
+                adc = makeadc(kwargs_for_adc)
                 self.all_event_holders[event_unique_name] = adc, include_in_loop
 
     def parse_config_params(self, all_params):
+        """
+        Parse simple single term analytical expressions.
+        Syntax: [-]event_unique_name.event_property[operator][operand]
+        [] - Optional
+        """
+
         parsed_params = []
         for param in all_params:
             try:
                 parsed_params.append(float(param))
             except ValueError:
-                # Syntax: [-][*event_unique_name].[*event_property[operator][operand]]
-                # * - Required
+                # Syntax: [-]event_unique_name.event_property[operator][operand]
+                # [] - Optional
                 if param.count('.') == 1:
                     sign = -1 if param[0] == '-' else 1
                     param = param[1:] if sign == -1 else param
@@ -173,12 +221,13 @@ class ExternalNode(gpi.NodeAPI):
                         value = value / operand if operator == '/' else value * operand
                         parsed_params.append(float(value))
                     else:
-                        raise ValueError('Value not found. The syntax for referring to other event parameters is: ['
-                                         'sign][*event_unique_name].[*event_property][operator][operand]. * - '
-                                         'required')
+                        raise ValueError(
+                            param + '\nValue not found. The syntax for referring to other event parameters_params is: ['
+                                    'sign][*event_unique_name].[*event_property][operator][operand]. * - '
+                                    'required')
                 else:
                     raise ValueError(
-                        'The syntax for referring to other event parameters is: [sign][*event_unique_name].['
+                        'The syntax for referring to other event parameters_params is: [sign][*event_unique_name].['
                         '*event_property][operator][operand]. * - required')
 
         if len(parsed_params) == 0:
@@ -186,41 +235,37 @@ class ExternalNode(gpi.NodeAPI):
         return parsed_params
 
     def add_blocks_to_seq(self, user_ordered_events):
-        # This method creates a Sequence object and adds Events
+        """This method creates a Sequence object and adds Events."""
+        self.log.node(self.all_event_holders)
         self.seq = Sequence(self.system)
-        # Retrieve gyPre values computed in ConfigSeq Node
-        gyPre = self.in_dict['gy_pre']
         for i in range(self.system.Ny):
             for unique_node_name in user_ordered_events:
                 events_to_add = []
-                for event_unique_name in self.all_event_ordered[unique_node_name]:
-                    if event_unique_name == 'gyPre':
-                        events_to_add.append(gyPre[i])
-                    else:
-                        event = self.get_eventdef_for_unique_name(event_unique_name)
+                for event_unique_name in self.all_events_ordered[unique_node_name]:
+                    event_def = self.get_eventdef_for_unique_name(event_unique_name)
 
-                        # Initialize gz as None. Since the user can assign any unique name to the Rf Event, there is
-                        # no definite way to check if the Gz Event has to be added. So, append the Rf Event's unique
-                        # name to gz (as 'gz_'), and check if this exists in all_event_holders.
-                        # (Look at make_event_holders method to refer to the addition of Gz Event to alL_event_holders.)
-                        gz = None
-                        if ('gz_' + event_unique_name) in self.all_event_holders.keys():
-                            gz = self.all_event_holders['gz_' + event_unique_name][0]
+                    # Initialize gz as None. Since the user can assign any unique name to the Rf Event, there is
+                    # no definite way to check if the Gz Event has to be added. So, append the Rf Event's unique
+                    # name to gz (as 'gz_'), and check if this exists in all_event_holders.
+                    # (Look at make_event_holders method to refer to the addition of Gz Event to alL_event_holders.)
+                    gz = None
+                    if ('gz_' + event_unique_name) in self.all_event_holders.keys():
+                        gz = self.all_event_holders['gz_' + event_unique_name][0]
 
-                        if event['include_in_loop']:
-                            events_to_add.append(self.all_event_holders[event_unique_name][0])
-                            if gz is not None:
-                                events_to_add.append(gz)
-                        else:
-                            # If Event has to be added only once, remove the Event and it's definition from
-                            # all_event_ordered and all_event_holders
-                            events_to_add.append(self.all_event_holders[event_unique_name][0])
-                            self.all_event_ordered[unique_node_name].remove(event_unique_name)
-                            self.all_event_holders.pop(event_unique_name)
+                    event = self.all_event_holders[event_unique_name][0]
+                    events_to_add.append(event[i] if event_unique_name == 'gy_pre' else event)
+                    if gz is not None:
+                        events_to_add.append(gz)
+                    if not event_def['include_in_loop']:
+                        # If Event has to be added only once, remove the Event and it's definition from
+                        # all_events_ordered and all_event_holders
+                        self.all_events_ordered[unique_node_name].remove(event_unique_name)
+                        self.all_event_holders.pop(event_unique_name)
                 self.seq.add_block(*events_to_add)
 
     def get_eventdef_for_unique_name(self, event_unique_name):
-        # This method returns the matching Event definition from all_event_def matching a given event_unique_name
+        """This method returns the Event definition from all_event_def matching a given event_unique_name."""
+
         for event in self.all_event_def:
             if event['event_unique_name'] == event_unique_name:
                 return event
