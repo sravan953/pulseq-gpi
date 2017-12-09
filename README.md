@@ -34,7 +34,7 @@ Python 3.6 based implementation of [Pulseq](http://pulseq.github.io) in [GPI Lab
 This section lists instructions to install *pulseq-gpi*.
 
 1. Clone the [repo](https://github.com/sravan953/pulseq-gpi) by downloading the zip file and extracting it:
-![Clone the repo](/Users/sravan953/Documents/readme/clone.png)
+![Clone the repo](readme_files/clone.png?raw=true "Clone the repo")
 
 2. Open GPI
 
@@ -51,7 +51,7 @@ This section lists instructions to install the GPI software.
 
 1. Download v1 beta from - http://gpilab.com/downloads/
 2. Install:
-![Install GPI](/Users/sravan953/Documents/readme/install_gpi.png)
+![Install GPI](readme_files/install_gpi.png?raw=true "Install GPI")
 
 ### 4. Installing prerequisite libraries (optional)
 To program pulse sequences in Python, *pulseq-gpi* requires the following libraries:
@@ -64,12 +64,12 @@ The official websites have resources on installing the respective libraries (usu
 1. Open PyCharm
 
 2. *Configure* > *Preferences*:
-![Open Preferences](/Users/sravan953/Documents/readme/pycharm_1.png)
+![Open Preferences](readme_files/pycharm_1.png?raw=true "Open Preferences")
 
 3. Click *Project Intepreter* in the left pane
 
 4. Click the *+* to add new libraries:
-![Click +](/Users/sravan953/Documents/readme/pycharm_2.png)
+![Click +](readme_files/pycharm_2.png?raw=true "Click +")
 
 5. Search for the prerequisite libraries and install
 ---
