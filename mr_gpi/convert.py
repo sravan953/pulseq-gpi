@@ -1,7 +1,7 @@
 from math import pi
 
 
-def convert_from_value(from_value, from_unit):
+def convert_from_to(from_value, from_unit):
     if isinstance(from_value, float) and isinstance(from_unit, str):
         gamma, standard = 42.576e6, 0
         # Converting gradient

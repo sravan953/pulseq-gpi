@@ -17,7 +17,7 @@ class ExternalNode(gpi.NodeAPI):
         return 0
 
     def compute(self):
-        if 'ComputeEvents' in self.widgetEvents() or '_INIT_EVENT' in self.getEvents():
+        if 'ComputeEvents' in self.widgetEvents() or '_INIT_EVENT_' in self.getEvents():
             delay_seq = {'DelaySequence': True}
             for label in self.delay_labels:
                 if self.getVal(label) != '':

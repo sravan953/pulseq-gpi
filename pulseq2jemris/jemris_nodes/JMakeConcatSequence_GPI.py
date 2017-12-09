@@ -14,25 +14,22 @@ class ExternalNode(gpi.NodeAPI):
         # IO Ports
         # List of port names so that it is easier to get data from ports
         self.input_ports = ['Seq1', 'Seq2', 'Seq3', 'Seq4', 'Seq5', 'Seq6']
-
-        # Six input ports because Pulseq only supports six simultaneous Events.
-        for port in self.input_ports:
-            self.addInPort(port, 'LIST', obligation=gpi.OPTIONAL)
+        [self.addInPort(port, 'LIST', obligation=gpi.OPTIONAL) for port in self.input_ports]
 
         self.addOutPort('ConcatSequence Children', 'LIST')
 
         return 0
 
     def compute(self):
-        if 'ComputeEvents' in self.widgetEvents():
-            # concat_seq_children_params is a list of ConcatSequence/ AtomicSequence parameters_params making up this ConcatSequence
-            # It is easier to get data from ports
-            concat_seq_children_params = []
+        if 'ComputeEvents' in self.widgetEvents() or 'input' in self.portEvents():
+            # concat_seq_children is a list of ConcatSequence/ AtomicSequence parameters_params making up this
+            # ConcatSequence. It is easier to get data from ports
+            concat_seq_children = []
             for port in self.input_ports:
                 # Port data will be None if no input is supplied
                 if self.getData(port) is not None:
-                    concat_seq_children_params.append(self.getData(port))
+                    concat_seq_children.append(self.getData(port))
             concat_params = dict(zip(self.parameters, [self.getVal(label) for label in self.parameters]))
-            self.setData('ConcatSequence Children', [concat_params, concat_seq_children_params])
+            self.setData('ConcatSequence Children', [concat_params, concat_seq_children])
 
         return 0

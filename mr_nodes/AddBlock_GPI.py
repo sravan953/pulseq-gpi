@@ -31,10 +31,11 @@ class AddBlockWidgets(gpi.GenericWidgetGroup):
         self.adc_labels = ['Unique Event name', 'Number of samples', 'Dwell (s)', 'Duration (s)', 'Delay (s)',
                            'Frequency Offset', 'Phase Offset']
         # Placeholders for StringBoxes to configure Events
+        # The placeholders are also the keys to retrieve values from the StringBoxes
         self.delay_placeholders = ['event_unique_name', 'delay']
-        self.sinc_rf_placeholders = ['event_unique_name', 'max_grad', 'max_slew', 'flipAngle', 'duration',
+        self.sinc_rf_placeholders = ['event_unique_name', 'max_grad', 'max_slew', 'flip_angle', 'duration',
                                      'freq_offset', 'phase_offset', 'time_bw_prod', 'apodization', 'slice_thickness']
-        self.block_rf_placeholders = ['event_unique_name', 'max_grad', 'max_slew', 'flipAngle', 'duration',
+        self.block_rf_placeholders = ['event_unique_name', 'max_grad', 'max_slew', 'flip_angle', 'duration',
                                       'freq_offset', 'phase_offset', 'time_bw_prod', 'bandwidth', 'slice_thickness']
         self.trap_placeholders = ['event_unique_name', 'channel', 'max_grad', 'max_slew', 'duration', 'area',
                                   'flat_time', 'flat_area', 'amplitude', 'rise_time']
@@ -127,7 +128,8 @@ class AddBlockWidgets(gpi.GenericWidgetGroup):
             """
             event_def contains:
             - event_name : str
-                Event name, corresponds to Event button that is selected
+                Event name, corresponds to Event button that is selected. Required to correctly construct the Event 
+                in GenSeq_GPI Node
             - event_unique_name : str
                 Unique Event name; user input
             - event_values : OrderedDict
@@ -143,6 +145,7 @@ class AddBlockWidgets(gpi.GenericWidgetGroup):
             keys = self.placeholders[self.clicked_button_index][1:]
             values = [x.get_val() for x in self.string_box_list[1:]]
             for x in values:
+                # Take default 0 if user has not entered any value
                 if x == '':
                     values[values.index(x)] = '0'
             event_def['event_values'] = OrderedDict(zip(keys, values))
@@ -153,7 +156,7 @@ class AddBlockWidgets(gpi.GenericWidgetGroup):
                 return None
 
             event_def['include_in_loop'] = self.include_in_loop_pushbutton.isChecked()
-            if self.clicked_button_index == 2:
+            if self.clicked_button_index == 2 or self.clicked_button_index == 3:
                 # For Rf event, check if Gz has to be included
                 event_def['include_gz'] = self.include_gz_pushbutton.isChecked()
             elif self.clicked_button_index == 6:
@@ -258,14 +261,14 @@ class AddBlockWidgets(gpi.GenericWidgetGroup):
 
 class ExternalNode(gpi.NodeAPI):
     """
-    This node providers options for setting up the event that needs to be added. Event parameters_params should be set to 0
-    if left unconfigured. Up to 6 simultaneous events can be added in one block. The 'ComputeEvents' button gathers
-    the input data into a dict object. The output of this node (or a chain of AddBlock Nodes) has to be supplied to a
-    GenSeq node.
+    This Node provides options for setting up the event that needs to be added. Event parameters_params should be set
+    to 0 if left unconfigured. Up to 6 simultaneous events can be added in one block. The 'ComputeEvents' button gathers
+    the input data into a dict object. The output of this Node (or a chain of AddBlock Nodes) has to be supplied to a
+    GenSeq Node.
 
      Units:
      - duration: s
-     - flipAngle : deg
+     - flip_angle : deg
      - flatTime : s
      - riseTime : s
      - dwell : s
@@ -297,20 +300,20 @@ class ExternalNode(gpi.NodeAPI):
 
     def compute(self):
         """
-        1. all_events_ordered is an OrderedDict, so the order of user-configured Events is preserved.
+        1. all_events_ordered is an OrderedDict, to preserve the order of user-configured Events.
         2. For unique_node_name in all_events_ordered, retrieve ordered_events; this will be a sequence of
             simultaneously occurring Events.
-        3. Iterate through ordered_events, and retrieve corresponding event definitions from all_event_def
+        3. Iterate through ordered_events, and retrieve corresponding event definitions from all_event_defs
 
         Structure
         ---------
-        in_dict
-        - all_event_def: [key-value pairs of event definitions]
+        in_dict:
+        - all_event_defs: [key-value pairs of event definitions]
         - all_events_ordered: {unique_node_name: [event_unique_name1, event_unique_name2 ...], ...}
 
         Variables
         ---------
-        all_event_def : list
+        all_event_defs : list
             List of dict objects that are key-value pairs of event definitions.
         all_events_ordered: OrderedDict()
             OrderedDict consisting of key-value pairs of unique_node_name and ordered_events (see below).
@@ -320,7 +323,7 @@ class ExternalNode(gpi.NodeAPI):
         """
         if 'ComputeEvents' in self.widgetEvents() or 'input' in self.portEvents():
             in_dict = self.getData('input')
-            all_event_def = in_dict['all_event_def'] if 'all_event_def' in in_dict else []
+            all_event_defs = in_dict['all_event_defs'] if 'all_event_defs' in in_dict else []
             all_events_ordered = in_dict['all_events_ordered'] if 'all_events_ordered' in in_dict else OrderedDict()
             ordered_events = []
 
@@ -331,13 +334,14 @@ class ExternalNode(gpi.NodeAPI):
                     self.log.critical('Enter Unique Event Name')
                     return 1
                 if len(event_def) != 0:
-                    all_event_def.append(event_def)
+                    all_event_defs.append(event_def)
                     ordered_events.append(event_def['event_unique_name'])
 
             all_events_ordered[self.unique_node_name] = ordered_events
 
-            in_dict['all_event_def'] = all_event_def
+            in_dict['all_event_defs'] = all_event_defs
             in_dict['all_events_ordered'] = all_events_ordered
             self.setData('output', in_dict)
+            self.log.node(in_dict)
 
             return 0

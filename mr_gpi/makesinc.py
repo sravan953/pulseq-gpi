@@ -61,7 +61,7 @@ def makesincpulse(kwargs, nargout=1):
 
     fill_time = 0
     if nargout > 1:
-        if slice_thickness < 0:
+        if slice_thickness == 0:
             raise ValueError('Slice thickness must be provided')
 
         system.max_grad = max_grad if max_grad > 0 else system.max_grad

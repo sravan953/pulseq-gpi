@@ -1,6 +1,6 @@
 import gpi
 
-from mr_gpi.pulseq2jemris import jseqtree
+from pulseq2jemris import jseqtree
 
 
 class ExternalNode(gpi.NodeAPI):
@@ -35,15 +35,16 @@ class ExternalNode(gpi.NodeAPI):
             # Get input data
             in_tuple = self.getData('ConcatSequence')
 
+            # Element at index 0 of input is concat_params (see compute() in JMakeConcatSequence_GPI)
             concat_seq_params = in_tuple[0]
-            # concat_seq_children_params is a list of ConcatSequence/AtomicSequence definitions
-            # Iterate through concat_seq_children_params to construct each Sequence
-            concat_seq_children_params = in_tuple[1]
+            # concat_seq_children is a list of ConcatSequence/AtomicSequence definitions
+            # Iterate through concat_seq_children to construct each Sequence
+            concat_seq_children = in_tuple[1]
 
             j = jseqtree.JSeqTree()
             avl_seq = []
-            for each_seq_params in concat_seq_children_params:
-                avl_seq.append(self.make_seq(j, each_seq_params))
+            for child in concat_seq_children:
+                avl_seq.append(self.make_seq(j, child))
             final_concat_seq = j.add_to_concat(concat_seq_params, *avl_seq)
 
             # Construct dict for Parameters module
@@ -59,13 +60,14 @@ class ExternalNode(gpi.NodeAPI):
 
             return 0
 
-    def make_seq(self, j, each_seq_params):
+    def make_seq(self, j, child):
         pulse_list = []
-        for pulse_params in each_seq_params:
-            if 'DelaySequence' in pulse_params:
-                # DelaySequence, do not call make_pulse()
-                return j.make_delay(pulse_params)
-            pulse_list.append(self.make_pulse(j, pulse_params))
+        for pulse_def in child:
+            if 'DelaySequence' in pulse_def:
+                # For a DelaySequence, call make_delay() instead
+                pulse_def.pop('DelaySequence')
+                return j.make_delay(pulse_def)
+            pulse_list.append(self.make_pulse(j, pulse_def))
 
         return j.add_to_atomic(*pulse_list)
 

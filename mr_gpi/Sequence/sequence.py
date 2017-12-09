@@ -64,14 +64,21 @@ class Sequence:
     def write(self, name):
         write(self, name)
 
-    def plot(self):
-        """Show Matplotlib plot of all Events in the Sequence object."""
-        
+    def plot(self, time_range=(0, np.inf)):
+        """
+        Show Matplotlib plot of all Events in the Sequence object.
+
+        Parameters
+        ----------
+        time_range : List
+            Time range (x-axis limits) for plot to be shown. Default is 0 to infinity (entire plot shown).
+        """
+
         fig1, fig2 = plt.figure(1), plt.figure(2)
         f11, f12, f13 = fig1.add_subplot(311), fig1.add_subplot(312), fig1.add_subplot(313)
         f2 = [fig2.add_subplot(311), fig2.add_subplot(312), fig2.add_subplot(313)]
-        t0, time_range = 0, [0, np.inf]
-        for iB in range(1, len(self.block_events)):
+        t0 = 0
+        for iB in range(1, len(self.block_events) + 1):
             block = self.get_block(iB)
             is_valid = time_range[0] <= t0 <= time_range[1]
             if is_valid:
@@ -102,4 +109,11 @@ class Sequence:
         f12.set_ylabel('rf mag hz')
         f13.set_ylabel('rf phase rad')
         [f2[x].set_ylabel(grad_channels[x]) for x in range(3)]
+        # Setting display limits
+        disp_range = [time_range[0], min(t0, time_range[1])]
+        f11.set_xlim(disp_range)
+        f12.set_xlim(disp_range)
+        f13.set_xlim(disp_range)
+        [x.set_xlim(disp_range) for x in f2]
+
         plt.show()

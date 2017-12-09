@@ -13,17 +13,8 @@ class Opts():
         self.slew_unit = kwargs.get("slew_unit", valid_slew_units[1])
 
         # Convert input values if not provided in standard units
-        self.max_grad = mr_gpi.convert.convert_from_value(float(self.max_grad), self.grad_unit)
-        self.max_slew = mr_gpi.convert.convert_from_value(float(self.max_slew), self.slew_unit)
-        # Following code not necessary since user is not given any choice of grad/slew units
-        # self.max_grad = mr_gpi.convert.convert(float(self.max_grad), self.grad_unit) if self.grad_unit != \
-        #                                                                                 valid_grad_units[
-        #                                                                                     0] else self.max_grad
-        # self.grad_unit = valid_grad_units[0] if self.grad_unit != valid_grad_units[0] else self.grad_unit
-        # self.max_slew = mr_gpi.convert.convert(float(self.max_slew), self.slew_unit) if self.slew_unit != \
-        #                                                                                 valid_slew_units[
-        #                                                                                     0] else self.max_slew
-        # self.slew_unit = valid_slew_units[0] if self.slew_unit != valid_slew_units[0] else self.slew_unit
+        self.max_grad = mr_gpi.convert.convert_from_to(float(self.max_grad), self.grad_unit)
+        self.max_slew = mr_gpi.convert.convert_from_to(float(self.max_slew), self.slew_unit)
 
         self.te = kwargs.get("te", 0)
         self.tr = kwargs.get("tr", 0)

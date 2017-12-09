@@ -40,7 +40,7 @@ def makeadc(kwargs):
         raise ValueError("Either dwell or duration must be defined, not both")
 
     if duration > 0:
-        getcontext().prec = 1
+        # getcontext().prec = 4
         adc.dwell = float(Decimal(duration) / Decimal(num_samples))
     adc.duration = dwell * num_samples if dwell > 0 else 0
     return adc

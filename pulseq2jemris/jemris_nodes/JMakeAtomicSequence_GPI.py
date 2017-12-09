@@ -9,23 +9,29 @@ class ConfigSeqWidgets(gpi.GenericWidgetGroup):
 
     def __init__(self, title, parent=None):
         super(ConfigSeqWidgets, self).__init__(title, parent)
-        self.button_names_list = ['Off', 'Rf', 'Trap']
+        self.button_names_list = ['Off', 'SincRfPulse', 'HardRfPulse', 'TrapGradPulse', 'TriangleGradPulse']
         self.clicked_button_name, self.clicked_button_index = '', 0
         self.buttons_list, self.string_box_list = [], []
 
         # Labels for StringBoxes to configure Events
-        self.sinc_labels = ['Name', 'Observe', 'ADCs', 'Channel', 'Duration', 'FlipAngle', 'Frequency', 'HardwareMode',
-                            'InitialDelay', 'InitialPhase', 'Refocusing', 'Symmetry', 'Vector']
-        self.trap_labels = ['Name', 'Observe', 'ADCs', 'Area', 'Asymmetric', 'Axis', 'Duration', 'FlatTopArea',
-                            'FlatTopTime', 'Frequency', 'HardwareMode', 'Hide', 'InitialDelay', 'InitialPhase',
-                            'MaxAmpl', 'NLG_Field', 'PhaseLock', 'SlewRate']
+        self.sinc_rf_labels = ['Name', 'Observe', 'ADCs', 'Apodization', 'Bandwidth', 'Axis', 'FlipAngle',
+                               'Frequency', 'HardwareMode', 'InitialDelay', 'InitialPhase', 'Refocusing', 'Symmetry',
+                               'Vector', ' Zeros']
+        self.hard_rf_labels = ['Name', 'Observe', 'ADCs', 'Channel', 'Duration', 'FlipAngle', 'Frequency',
+                               'HardwareMode', 'InitialDelay', 'InitialPhase', 'Refocusing', 'Symmetry', 'Vector']
+        self.trap_grad_labels = ['Name', 'Observe', 'ADCs', 'Area', 'Asymmetric', 'Axis', 'Duration', 'EddyConvLength',
+                                 'EddyCurrents', 'FlatTopArea', 'FlatTopTime', 'Frequency', 'HardwareMode', 'Hide',
+                                 'InitialDelay', 'InitialPhase', 'MaxAmpl', 'NLG_field', 'PhaseLock', 'SlewRate']
+        self.triangle_grad_labels = ['Name', 'Observe', 'ADCs', 'Amplitude', 'Axis', 'Duration', 'EddyConvLength',
+                                     'EddyCurrents', 'HardwareMode', 'Hide', 'InitialDelay', 'InitialPhase', 'MaxAmpl',
+                                     'NLG_field', 'PhaseLock', 'TriangleType', 'Vector']
 
         # Variable to denote the maximum number of StringBoxes to be added; obviously depends on the Event which has the
         # maximum number of configuration parameters_params
-        self.num_string_boxes = max(len(self.sinc_labels), len(self.trap_labels))
+        self.num_string_boxes = max(len(self.hard_rf_labels), len(self.trap_grad_labels))
 
         # First index is None because the first button is 'Off'. Look into event_def['event_values'] in get_val()
-        self.labels = [None, self.sinc_labels, self.trap_labels]
+        self.labels = [None, self.sinc_rf_labels, self.hard_rf_labels, self.trap_grad_labels, self.triangle_grad_labels]
 
         self.wdg_layout = QtGui.QGridLayout()
         self.add_event_pushbuttons()
@@ -136,7 +142,7 @@ class ExternalNode(gpi.NodeAPI):
         return 0
 
     def compute(self):
-        if 'ComputeEvents' in self.widgetEvents() or '_INIT_EVENT' in self.getEvents():
+        if 'ComputeEvents' in self.widgetEvents() or '_INIT_EVENT_' in self.getEvents():
             # Retrieve pulse definitions and add to atomic_seq_children
             atomic_seq_children = []
             for x in range(self.num_concurrent_events):

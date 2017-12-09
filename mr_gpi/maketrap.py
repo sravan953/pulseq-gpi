@@ -49,8 +49,7 @@ def maketrapezoid(kwargs):
         else:
             if rise_time == 0:
                 dC = 1 / abs(2 * max_slew) + 1 / abs(2 * max_slew)
-                amplitude = (duration - sqrt(pow(duration, 2) - 4 * abs(area_result) * dC)) / (
-                    2 * dC)
+                amplitude = (duration - sqrt(pow(duration, 2) - 4 * abs(area_result) * dC)) / (2 * dC)
             else:
                 amplitude = area_result / (duration - rise_time)
 
@@ -62,6 +61,8 @@ def maketrapezoid(kwargs):
         flat_time = (duration - rise_time - fall_time)
 
         amplitude = area_result / (rise_time / 2 + fall_time / 2 + flat_time) if amplitude_result == -1 else amplitude
+    else:
+        raise ValueError('Must supply a duration')
 
     if abs(amplitude) > max_grad:
         raise ValueError("Amplitude violation")

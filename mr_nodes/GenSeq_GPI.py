@@ -4,6 +4,7 @@ from collections import OrderedDict
 import gpi
 import h5py
 import numpy as np
+import copy
 
 from mr_gpi import convert
 from mr_gpi.Sequence.sequence import Sequence
@@ -25,7 +26,8 @@ class ExternalNode(gpi.NodeAPI):
         self.addWidget('TextBox', 'Sequence details')
 
         # IO Ports
-        self.addInPort(title='input', type='DICT', obligation=gpi.REQUIRED)
+        self.addInPort(title='input', type='DICT')
+        self.addInPort(title='epi_readout', type='DICT', obligation=gpi.OPTIONAL)
         self.addOutPort(title='seq_output', type='DICT')
         self.addOutPort(title='adc_output', type='NPYarray')
         self.addOutPort(title='rf_mag_output', type='NPYarray')
@@ -34,7 +36,7 @@ class ExternalNode(gpi.NodeAPI):
         self.addOutPort(title='trap_y_output', type='NPYarray')
         self.addOutPort(title='trap_z_output', type='NPYarray')
 
-        self.all_event_def = OrderedDict()
+        self.all_event_defs = OrderedDict()
         self.all_events_ordered = OrderedDict()
 
         return 0
@@ -44,7 +46,7 @@ class ExternalNode(gpi.NodeAPI):
         if 'sequence' in self.in_dict:
             self.seq = self.in_dict['sequence']
         else:
-            self.all_event_def = self.in_dict['all_event_def']
+            self.all_event_defs = self.in_dict['all_event_defs']
             self.all_events_ordered = self.in_dict['all_events_ordered']
 
             events_added_text = str()
@@ -58,7 +60,7 @@ class ExternalNode(gpi.NodeAPI):
             if len(user_ordered_events) == 0:
                 raise ValueError('Enter [Unique Name] of Events in the order you want Events to be added.')
 
-            self.make_event_holders
+            self.make_event_holders()
             self.add_blocks_to_seq(user_ordered_events)
             self.set_plot_outputs()
 
@@ -71,16 +73,15 @@ class ExternalNode(gpi.NodeAPI):
 
             return 0
 
-    @property
     def make_event_holders(self):
         """Make appropriate Holder objects depending on the Event type."""
 
         self.system = self.in_dict['system']
         # arbgrad_file_path is only for arbitrary gradients
-        arbgrad_file_path = self.all_event_def['file_path'] if 'file_path' in self.all_event_def else None
+        arbgrad_file_path = self.all_event_defs['file_path'] if 'file_path' in self.all_event_defs else None
         self.all_event_holders = {}
 
-        for event in self.all_event_def:
+        for event in self.all_event_defs:
             event_unique_name = event['event_unique_name']
             event_name = event['event_name']
             event_values = list(event['event_values'].values())
@@ -95,8 +96,8 @@ class ExternalNode(gpi.NodeAPI):
                 max_grad, max_slew, flip_angle, duration, freq_offset, phase_offset, time_bw_product, apodization, slice_thickness = self.parse_config_params(
                     event_values)
                 flip_angle = math.radians(flip_angle)
-                max_grad = convert.convert_from_value(max_grad, 'mT/m')
-                max_slew = convert.convert_from_value(max_slew, 'mT/m/ms')
+                max_grad = convert.convert_from_to(max_grad, 'mT/m')
+                max_slew = convert.convert_from_to(max_slew, 'mT/m/ms')
                 max_grad = self.system.max_grad if max_grad == 0 else max_grad
                 max_slew = self.system.max_slew if max_slew == 0 else max_slew
                 kwargs_for_sinc = {"flip_angle": flip_angle, "system": self.system, "duration": duration,
@@ -115,8 +116,8 @@ class ExternalNode(gpi.NodeAPI):
                 max_grad, max_slew, flip_angle, duration, freq_offset, phase_offset, time_bw_product, bandwidth, slice_thickness = self.parse_config_params(
                     event_values)
                 flip_angle = math.radians(flip_angle)
-                max_grad = convert.convert_from_value(max_grad, 'mT/m')
-                max_slew = convert.convert_from_value(max_slew, 'mT/m/ms')
+                max_grad = convert.convert_from_to(max_grad, 'mT/m')
+                max_slew = convert.convert_from_to(max_slew, 'mT/m/ms')
                 max_grad = self.system.max_grad if max_grad == 0 else max_grad
                 max_slew = self.system.max_slew if max_slew == 0 else max_slew
                 kwargs_for_block = {"flip_angle": flip_angle, "system": self.system, "duration": duration,
@@ -141,8 +142,8 @@ class ExternalNode(gpi.NodeAPI):
                 flat_area = flat_area if flat_area != 0 else -1
                 amplitude = amplitude if amplitude != 0 else -1
 
-                max_grad = convert.convert_from_value(max_grad, 'mT/m')
-                max_slew = convert.convert_from_value(max_slew, 'mT/m/ms')
+                max_grad = convert.convert_from_to(max_grad, 'mT/m')
+                max_slew = convert.convert_from_to(max_slew, 'mT/m/ms')
                 max_grad = self.system.max_grad if max_grad == 0 else max_grad
                 max_slew = self.system.max_slew if max_slew == 0 else max_slew
                 kwargs_for_trap = {"channel": channel, "system": self.system, "duration": duration, "area": area,
@@ -156,7 +157,7 @@ class ExternalNode(gpi.NodeAPI):
                 delta_k = 1 / self.system.fov
                 gy_pre_list = []
 
-                for i in range(Ny):
+                for i in range(int(Ny)):
                     kwargs_for_gy_pre = {"channel": 'y', "system": self.system, "area": (i - Ny / 2) * delta_k,
                                          "duration": duration}
                     if area != 0:
@@ -227,46 +228,109 @@ class ExternalNode(gpi.NodeAPI):
                                     'required')
                 else:
                     raise ValueError(
-                        'The syntax for referring to other event parameters_params is: [sign][*event_unique_name].['
-                        '*event_property][operator][operand]. * - required')
+                        param + '\nValue not found. The syntax for referring to other event parameters_params is: ['
+                                'sign][*event_unique_name].[*event_property][operator][operand]. * - '
+                                'required')
 
         if len(parsed_params) == 0:
-            raise ValueError('Please make sure you have input correct configuration paraneters.')
+            raise ValueError('Please make sure you have input correct configuration parameters.')
         return parsed_params
 
     def add_blocks_to_seq(self, user_ordered_events):
-        """This method creates a Sequence object and adds Events."""
-        self.log.node(self.all_event_holders)
+        """
+        This method creates a Sequence object and adds Events.
+
+        - 'epi_events' is not a Node; so if unique_node_name == 'epi_events' that means the single-shot EPI readout
+        Events have to be added to the Sequence object - The single-shot EPI readout Events are defined in
+        self.ss_epi_event_unique_names_list
+        - At the end of Every EPI readout, the amplitude has to be inverted. This is done by bookmarking the index of
+        the Event whose amplitude has to be inverted. This index is used at the end of every for loop iteration while
+        adding the Events to the Sequence object
+        """
         self.seq = Sequence(self.system)
-        for i in range(self.system.Ny):
+        Ny = int(self.system.Ny)
+        epi_readout = self.getData('epi_readout')
+        epi_nodes = epi_readout['epi_events'].split(',') if epi_readout is not None else None
+        epi_event_amp_inv = epi_readout['epi_event_amplitude_inversion'] if epi_readout is not None else None
+        epi_events_to_add = []
+
+        # For example, in ss_epi_demo.py:
+        # for i in range(self.Ny):
+        # - seq.add_block(gx, adc)
+        # - seq.add_block(gy)
+        # Two Nodes encapsulate the Events (gx, adc) and (gy). These Events *together* have to be added Ny times.
+        # A typical implementation would add the Events of each Node Ny times, and then the next set of Events belonging
+        # to the next Node. However, we want to add all these Events Ny times, in that order.
+        # First, check that user has mentioned EPI Events
+        if epi_readout is not None:
+            for i in range(Ny):
+                for each_epi_node in epi_nodes:
+                    _epi_list = []
+
+                    for epi_event_name in self.all_events_ordered[each_epi_node]:
+                        epi_event = self.all_event_holders[epi_event_name][0]
+                        print(id(epi_event))
+                        # Invert amplitude
+                        if i != 0 and epi_event_name == epi_event_amp_inv:
+                            epi_event.amplitude = -epi_event.amplitude
+
+                        # Create a deepcopy of _epi_event; because Python points multiple objects to same memory
+                        _temp_epi_event = copy.deepcopy(epi_event)
+                        _epi_list.append(_temp_epi_event)
+
+                    epi_events_to_add.append(_epi_list)
+            # If EPI readout Events are present, the other Events have to only be added once. So, Ny = 1
+            Ny = 1
+
+        # If a particular Event does not need to be added Ny times, but only once, add the unique_event_name to a
+        # blacklist
+        _events_blacklist = []
+        for i in range(Ny):
             for unique_node_name in user_ordered_events:
-                events_to_add = []
-                for event_unique_name in self.all_events_ordered[unique_node_name]:
-                    event_def = self.get_eventdef_for_unique_name(event_unique_name)
+                if unique_node_name == 'epi_events':
+                    if len(epi_events_to_add) == 0:
+                        raise ValueError('Please specify the Events which are EPI readout Events')
+                    for _epi_list in epi_events_to_add:
+                        self.seq.add_block(*_epi_list)
+                else:
+                    events_to_add = []
+                    for event_unique_name in self.all_events_ordered[unique_node_name]:
+                        if event_unique_name not in _events_blacklist:
+                            event_def = self.get_eventdef_for_unique_name(event_unique_name)
+                            epi_event = self.all_event_holders[event_unique_name][0]
 
-                    # Initialize gz as None. Since the user can assign any unique name to the Rf Event, there is
-                    # no definite way to check if the Gz Event has to be added. So, append the Rf Event's unique
-                    # name to gz (as 'gz_'), and check if this exists in all_event_holders.
-                    # (Look at make_event_holders method to refer to the addition of Gz Event to alL_event_holders.)
-                    gz = None
-                    if ('gz_' + event_unique_name) in self.all_event_holders.keys():
-                        gz = self.all_event_holders['gz_' + event_unique_name][0]
+                            events_to_add.append(epi_event[i] if event_unique_name == 'gy_pre' else epi_event)
 
-                    event = self.all_event_holders[event_unique_name][0]
-                    events_to_add.append(event[i] if event_unique_name == 'gy_pre' else event)
-                    if gz is not None:
-                        events_to_add.append(gz)
-                    if not event_def['include_in_loop']:
-                        # If Event has to be added only once, remove the Event and it's definition from
-                        # all_events_ordered and all_event_holders
-                        self.all_events_ordered[unique_node_name].remove(event_unique_name)
-                        self.all_event_holders.pop(event_unique_name)
-                self.seq.add_block(*events_to_add)
+                            # Initialize gz as None. Since the user can assign any unique name to the Rf Event, there is
+                            # no definite way to check if the Gz Event has to be added. So, append the Rf Event's unique
+                            # name to gz (as 'gz_'), and check if this exists in all_event_holders.
+                            # (Look at make_event_holders method to refer to the addition of Gz Event to alL_event_holders.)
+                            gz = None
+                            if ('gz_' + event_unique_name) in self.all_event_holders.keys():
+                                gz = self.all_event_holders['gz_' + event_unique_name][0]
+                            if gz is not None:
+                                events_to_add.append(gz)
+
+                            # Remove Event if it has to be added only once
+                            if not event_def['include_in_loop']:
+                                _events_blacklist.append(event_unique_name)
+                                # TODO: Optimize code
+                                # self.all_events_ordered[unique_node_name].remove(event_unique_name)
+                                # _keys = list(self.all_event_holders.keys())
+                                # self.log.node(_keys)
+                                # _values = list(self.all_event_holders.values())
+                                # _index = _keys.index(event_unique_name)
+                                # _keys.pop(_index)
+                                # _values.pop(_index)
+                                # self.log.node(_keys)
+                                # self.all_event_holders = OrderedDict(zip(_keys, _values))
+
+                    self.seq.add_block(*events_to_add)
 
     def get_eventdef_for_unique_name(self, event_unique_name):
-        """This method returns the Event definition from all_event_def matching a given event_unique_name."""
+        """This method returns the Event definition from all_event_defs matching a given event_unique_name."""
 
-        for event in self.all_event_def:
+        for event in self.all_event_defs:
             if event['event_unique_name'] == event_unique_name:
                 return event
 

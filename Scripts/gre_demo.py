@@ -22,18 +22,17 @@ delays: 0.002775, 0.004775
 gx.flat_time = 0.0064
 gx.rise_time = 1e-5
 """
-
-kwargs_for_opts = {"max_grad": 30, "grad_unit": "mT/m", "max_slew": 170, "slew_unit": "T/m/s"}
+kwargs_for_opts = {"max_grad": 33, "grad_unit": "mT/m", "max_slew": 100, "slew_unit": "T/m/s"}
 system = Opts(kwargs_for_opts)
 seq = Sequence(system)
 
-fov = 220e-3
-Nx = 64
-Ny = 64
+fov = 256e-3
+Nx = 256
+Ny = 256
 slice_thickness = 5e-3
 
 flip = 15 * pi / 180
-kwargs_for_sinc = {"flip_angle": flip, "system": system, "duration": 4e-3, "slice_thickness": slice_thickness,
+kwargs_for_sinc = {"flip_angle": flip, "system": system, "duration": 2.5e-3, "slice_thickness": slice_thickness,
                    "apodization": 0.5, "time_bw_product": 4}
 rf, gz = makesincpulse(kwargs_for_sinc, 2)
 # plt.plot(rf.t[0], rf.signal[0])
@@ -54,8 +53,9 @@ gz_reph = maketrapezoid(kwargs_for_gz_reph)
 phase_areas = np.array(([x for x in range(0, Ny)]))
 phase_areas = (phase_areas - Ny / 2) * delta_k
 
-delayTE = 10e-3 - calcduration(gx_pre) - calcduration(rf) / 2 - calcduration(gx) / 2
-delayTR = 20e-3 - calcduration(gx_pre) - calcduration(rf) - calcduration(gx) - delayTE
+TE, TR = 10e-3, 20e-3
+delayTE = TE - calcduration(gx_pre) - calcduration(rf) / 2 - calcduration(gx) / 2
+delayTR = TR - calcduration(gx_pre) - calcduration(rf) - calcduration(gx) - delayTE
 delay1 = makedelay(delayTE)
 delay2 = makedelay(delayTR)
 
@@ -68,6 +68,11 @@ for i in range(Ny):
     seq.add_block(gx, adc)
     seq.add_block(delay2)
 
+# Display 1 TR
+seq.plot(time_range=(0, TR))
+
+# Display entire plot
 # seq.plot()
+
 # The .seq file will be available inside the /gpi/<user>/pulseq-gpi folder
-seq.write("gre_python.seq")
+# seq.write("gre_python.seq")

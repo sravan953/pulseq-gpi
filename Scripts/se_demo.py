@@ -11,16 +11,6 @@ from mr_gpi.makesinc import makesincpulse
 from mr_gpi.maketrap import maketrapezoid
 from mr_gpi.opts import Opts
 
-"""
-SE:
-flips: 90, 180
-delays: 0.044835, 0.047565, 0.077240
-gx.rise_time = 0.0001
-gx.flat_time = 0.00256
-gx.area/2 = 519.53
--gz.area/2 = -420
-"""
-
 kwargs_for_opts = {"max_grad": 33, "grad_unit": "mT/m", "max_slew": 100, "slew_unit": "T/m/s", "rf_dead_time": 10e-6,
                    "adc_dead_time": 10e-6}
 system = Opts(kwargs_for_opts)
@@ -56,9 +46,10 @@ kwargs_for_sinc = {"flip_angle": flip, "system": system, "duration": 2e-3, "slic
                    "apodization": 0.5, "time_bw_product": 4}
 rf180, gz180 = makesincpulse(kwargs_for_sinc, 2)
 
-delayTE1 = 100e-3 / 2 - calcduration(gz_reph) - calcduration(rf) - calcduration(rf180) / 2
-delayTE2 = 100e-3 / 2 - calcduration(gx) / 2 - calcduration(rf180) / 2
-delayTE3 = 180e-3 - 100e-3 - calcduration(gx)
+TE, TR = 100e-3, 2000e-3
+delayTE1 = TE / 2 - calcduration(gz_reph) - calcduration(rf) - calcduration(rf180) / 2
+delayTE2 = TE / 2 - calcduration(gx) / 2 - calcduration(rf180) / 2
+delayTE3 = TR - TE - calcduration(gx)
 delay1 = makedelay(delayTE1)
 delay2 = makedelay(delayTE2)
 delay3 = makedelay(delayTE3)
@@ -74,7 +65,11 @@ for i in range(Ny):
     seq.add_block(gx, adc)
     seq.add_block(delay3)
 
+# Display 1 TR
+seq.plot(time_range=(0, TR))
 
+# Display entire plot
 # seq.plot()
+
 # The .seq file will be available inside the /gpi/<user>/pulseq-gpi folder
-seq.write("se_python.seq")
+# seq.write("se_python.seq")

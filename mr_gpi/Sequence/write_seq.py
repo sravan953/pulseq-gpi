@@ -15,7 +15,7 @@ def write(self, file_name):
     file_name += '.seq' if file_name[-4:] != '.seq' not in file_name else ''
     output_file = open(file_name, 'w')
     output_file.write("# Pulseq sequence file\n")
-    output_file.write("# Created by GPI Lab\n\n")
+    output_file.write("# Created by Python/GPI Lab\n\n")
     output_file.write("# Format of blocks:\n")
     output_file.write("#  #  D RF  GX  GY  GZ ADC\n")
     output_file.write("[BLOCKS]\n")

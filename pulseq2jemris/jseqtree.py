@@ -1,7 +1,7 @@
 import xml.etree.ElementTree as ET
 
-from mr_gpi.pulseq2jemris.genericpulse import GenericPulse
-from mr_gpi.pulseq2jemris.genericseq import GenericSeq
+from pulseq2jemris.genericpulse import GenericPulse
+from pulseq2jemris.genericseq import GenericSeq
 
 
 class JSeqTree():
@@ -145,6 +145,7 @@ class JSeqTree():
         rf_pulse.Name = 'P' + str(self.seq_numbering['P'])
 
         for k, v in rf_kwargs.items():
+            k = 'Axis' if k == 'Channel' else k
             setattr(rf_pulse, k, str(v))
         self.seq_numbering['P'] += 1
         return rf_pulse

@@ -7,7 +7,7 @@ def makedelay(d):
 
     Parameters
     ----------
-    d : int
+    d : float
         Delay time, in seconds.
 
     Returns
